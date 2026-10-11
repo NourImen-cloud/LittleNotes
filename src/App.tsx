@@ -1,0 +1,506 @@
+import React, { useState, useEffect } from 'react';
+import type { Note, Notebook, ThoughtStage, NoteStyle, KawaiiSticker, NoteColor } from './types';
+import { INITIAL_NOTEBOOKS, INITIAL_NOTES } from './data/initialData';
+import { Header } from './components/Header';
+import { QuickCapture } from './components/QuickCapture';
+import { NotebooksBar } from './components/NotebooksBar';
+import { NoteCard } from './components/NoteCard';
+import { StickyNotePickerModal } from './components/StickyNotePickerModal';
+import { EditNoteModal } from './components/EditNoteModal';
+import { RevisionModal } from './components/RevisionModal';
+import { StudyTimerModal } from './components/StudyTimerModal';
+import { DoodleCanvasModal } from './components/DoodleCanvasModal';
+import { Plus, Pin } from 'lucide-react';
+
+const STORAGE_NOTES_KEY = 'littlenotes_notes_v1';
+const STORAGE_NOTEBOOKS_KEY = 'littlenotes_notebooks_v1';
+const STORAGE_TEXTURE_KEY = 'littlenotes_texture_v1';
+const STORAGE_NIGHT_KEY = 'littlenotes_night_v1';
+
+export const App: React.FC = () => {
+  // Load data from localStorage or initial seed
+  const [notes, setNotes] = useState<Note[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_NOTES_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_NOTES;
+    } catch {
+      return INITIAL_NOTES;
+    }
+  });
+
+  const [notebooks, setNotebooks] = useState<Notebook[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_NOTEBOOKS_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_NOTEBOOKS;
+    } catch {
+      return INITIAL_NOTEBOOKS;
+    }
+  });
+
+  const [paperTexture, setPaperTexture] = useState<'grid' | 'ruled' | 'clean'>(() => {
+    try {
+      return (localStorage.getItem(STORAGE_TEXTURE_KEY) as any) || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const [isNightMode, setIsNightMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_NIGHT_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedNotebookId, setSelectedNotebookId] = useState<string | 'all'>('all');
+  const [activeStage, setActiveStage] = useState<ThoughtStage | 'all'>('all');
+
+  // Modals
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [revisionInitialId, setRevisionInitialId] = useState<string | undefined>();
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+  const [isDoodleModalOpen, setIsDoodleModalOpen] = useState(false);
+
+  // Persist notes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(notes));
+    } catch (err) {
+      console.error('Failed to save notes to localStorage', err);
+    }
+  }, [notes]);
+
+  // Persist notebooks
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_NOTEBOOKS_KEY, JSON.stringify(notebooks));
+    } catch (err) {
+      console.error('Failed to save notebooks to localStorage', err);
+    }
+  }, [notebooks]);
+
+  // Persist texture preference
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_TEXTURE_KEY, paperTexture);
+    } catch (err) {
+      console.error('Failed to save texture preference', err);
+    }
+  }, [paperTexture]);
+
+  // Persist night mode preference
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_NIGHT_KEY, String(isNightMode));
+    } catch (err) {
+      console.error('Failed to save night mode preference', err);
+    }
+  }, [isNightMode]);
+
+  // Handlers
+  const handleCaptureQuickNote = (noteData: Partial<Note>) => {
+    const newNote: Note = {
+      id: 'note-' + Date.now(),
+      title: noteData.title || '',
+      content: noteData.content || '',
+      notebookId: noteData.notebookId || (selectedNotebookId !== 'all' ? selectedNotebookId : 'inbox'),
+      color: noteData.color || 'paper',
+      styleType: noteData.styleType || 'classic',
+      stage: 'catch',
+      tags: noteData.tags || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setNotes([newNote, ...notes]);
+  };
+
+  const handleSelectPreset = (preset: {
+    styleType: NoteStyle;
+    sticker: KawaiiSticker;
+    color: NoteColor;
+    title: string;
+    hasChecklist?: boolean;
+    hasCode?: boolean;
+  }) => {
+    const newNote: Note = {
+      id: 'note-' + Date.now(),
+      title: preset.title,
+      content: 'Write your notes or thoughts here...',
+      notebookId: selectedNotebookId !== 'all' ? selectedNotebookId : 'inbox',
+      color: preset.color,
+      styleType: preset.styleType,
+      kawaiiSticker: preset.sticker,
+      stage: 'shape',
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      checklist: preset.hasChecklist
+        ? [
+            { id: 'c-1', text: 'First study task', done: false },
+            { id: 'c-2', text: 'Second study task', done: false },
+          ]
+        : undefined,
+      codeBlock: preset.hasCode
+        ? {
+            language: 'python',
+            code: '# Your code note\ndef study_session():\n    pass',
+          }
+        : undefined,
+    };
+
+    setNotes([newNote, ...notes]);
+    setEditingNote(newNote);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateNote = (updated: Note) => {
+    setNotes(notes.map((n) => (n.id === updated.id ? updated : n)));
+  };
+
+  const handleDeleteNote = (id: string) => {
+    setNotes(notes.filter((n) => n.id !== id));
+  };
+
+  const handleOpenEdit = (note: Note) => {
+    setEditingNote(note);
+    setIsEditModalOpen(true);
+  };
+
+  const handleStartRevision = (note: Note) => {
+    setRevisionInitialId(note.id);
+    setIsRevisionModalOpen(true);
+  };
+
+  const handleAddNotebook = (nb: { name: string; icon: string; color: string }) => {
+    const newNb: Notebook = {
+      id: 'nb-' + Date.now(),
+      name: nb.name,
+      icon: nb.icon,
+      color: nb.color,
+    };
+    setNotebooks([...notebooks, newNb]);
+  };
+
+  // Doodle handler
+  const handleSaveDoodle = (dataUrl: string) => {
+    if (editingNote) {
+      handleUpdateNote({
+        ...editingNote,
+        drawingDataUrl: dataUrl,
+        updatedAt: new Date().toISOString(),
+      });
+    } else {
+      const newDoodleNote: Note = {
+        id: 'note-' + Date.now(),
+        title: 'Handwritten Formula / Sketch',
+        content: 'Quick visual derivation drawn on grid paper.',
+        notebookId: selectedNotebookId !== 'all' ? selectedNotebookId : 'inbox',
+        color: 'paper',
+        styleType: 'classic',
+        drawingDataUrl: dataUrl,
+        stage: 'shape',
+        tags: ['sketch', 'handwriting'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setNotes([newDoodleNote, ...notes]);
+    }
+  };
+
+  // Print Cheat Sheet
+  const handlePrintGuide = () => {
+    window.print();
+  };
+
+  // Export JSON
+  const handleExportNotes = () => {
+    const exportData = {
+      notes,
+      notebooks,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `littlenotes_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import JSON
+  const handleImportNotes = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target?.result as string);
+          if (Array.isArray(parsed.notes)) {
+            setNotes(parsed.notes);
+          }
+          if (Array.isArray(parsed.notebooks)) {
+            setNotebooks(parsed.notebooks);
+          }
+          alert('Notes restored successfully! 🌿');
+        } catch {
+          alert('Invalid backup JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  // Filter notes
+  const filteredNotes = notes.filter((n) => {
+    // Notebook filter
+    if (selectedNotebookId !== 'all' && n.notebookId !== selectedNotebookId) {
+      return false;
+    }
+    // Stage filter
+    if (activeStage !== 'all' && n.stage !== activeStage) {
+      return false;
+    }
+    // Search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = n.title.toLowerCase().includes(q);
+      const matchContent = n.content.toLowerCase().includes(q);
+      const matchTags = n.tags.some((t) => t.toLowerCase().includes(q));
+      const matchCode = n.codeBlock?.code.toLowerCase().includes(q);
+      const matchRevision = n.revisionQuestion?.toLowerCase().includes(q);
+      return matchTitle || matchContent || matchTags || matchCode || matchRevision;
+    }
+    return true;
+  });
+
+  const pinnedNotes = filteredNotes.filter((n) => n.isPinned);
+  const regularNotes = filteredNotes.filter((n) => !n.isPinned);
+
+  // Background texture class
+  const textureClass =
+    paperTexture === 'grid'
+      ? 'grid-paper-bg'
+      : paperTexture === 'ruled'
+      ? 'ruled-paper-bg'
+      : 'bg-[#FAF6EF]';
+
+  return (
+    <div
+      className={`min-h-screen ${
+        isNightMode ? 'bg-[#1C1A21] text-amber-50' : textureClass + ' text-[#37343C]'
+      } flex flex-col font-sans transition-colors duration-300`}
+    >
+      {/* Top Header */}
+      <Header
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        paperTexture={paperTexture}
+        onTextureChange={setPaperTexture}
+        isNightMode={isNightMode}
+        onToggleNightMode={() => setIsNightMode(!isNightMode)}
+        onOpenTemplates={() => setIsTemplateModalOpen(true)}
+        onOpenRevision={() => {
+          setRevisionInitialId(undefined);
+          setIsRevisionModalOpen(true);
+        }}
+        onOpenTimer={() => setIsTimerModalOpen(true)}
+        onPrintGuide={handlePrintGuide}
+        onExportNotes={handleExportNotes}
+        onImportNotes={handleImportNotes}
+      />
+
+      {/* Main Body */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4">
+        {/* Step 1: Catch it - Instant Quick Capture with Voice & Doodle buttons */}
+        <div className="print:hidden">
+          <QuickCapture
+            onCapture={handleCaptureQuickNote}
+            onOpenTemplates={() => setIsTemplateModalOpen(true)}
+            onOpenDoodle={() => setIsDoodleModalOpen(true)}
+          />
+
+          {/* Notebooks bar */}
+          <NotebooksBar
+            notebooks={notebooks}
+            notes={notes}
+            selectedNotebookId={selectedNotebookId}
+            onSelectNotebook={setSelectedNotebookId}
+            onAddNotebook={handleAddNotebook}
+            activeStage={activeStage}
+            onSelectStage={setActiveStage}
+          />
+        </div>
+
+        {/* Printable Study Guide Banner (shown when printing) */}
+        <div className="hidden print:block mb-6 border-b pb-4">
+          <h1 className="text-2xl font-serif font-bold text-stone-900">
+            🌿 LittleNotes Study Guide & Cheat Sheet
+          </h1>
+          <p className="text-xs text-stone-600">
+            Generated on {new Date().toLocaleDateString()} • {filteredNotes.length} notes compiled
+          </p>
+        </div>
+
+        {/* Notes Grid */}
+        <div className="max-w-6xl mx-auto px-4 mt-6">
+          {filteredNotes.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-white/70 border border-dashed border-[#DFCDB3] rounded-3xl max-w-md mx-auto space-y-3">
+              <span className="text-4xl">🪴</span>
+              <h3 className="font-serif text-lg font-semibold text-stone-700">
+                {searchQuery ? 'No notes matched your search' : 'No notes in this view yet'}
+              </h3>
+              <p className="text-xs text-stone-500 max-w-xs mx-auto">
+                {searchQuery
+                  ? 'Try searching with fewer words or reset the filters.'
+                  : 'Catch a quick thought above or choose a cozy sticky note template to get started!'}
+              </p>
+              {searchQuery ? (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="px-3.5 py-1.5 bg-stone-800 text-white rounded-xl text-xs font-medium cursor-pointer"
+                >
+                  Clear search
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsTemplateModalOpen(true)}
+                  className="px-4 py-2 bg-[#E7DDF8] text-[#402C5E] rounded-xl text-xs font-medium hover:bg-[#D8C6F2] transition cursor-pointer"
+                >
+                  Browse Sticky Templates
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Pinned Notes section */}
+              {pinnedNotes.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-amber-800 uppercase tracking-wider print:hidden">
+                    <Pin size={13} className="fill-amber-700" />
+                    <span>Pinned Notes</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 print:grid-cols-2">
+                    {pinnedNotes.map((note) => (
+                      <NoteCard
+                        key={note.id}
+                        note={note}
+                        notebooks={notebooks}
+                        onUpdateNote={handleUpdateNote}
+                        onDeleteNote={handleDeleteNote}
+                        onEditNote={handleOpenEdit}
+                        onStartRevision={handleStartRevision}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Regular Notes section */}
+              {regularNotes.length > 0 && (
+                <div className="space-y-3">
+                  {pinnedNotes.length > 0 && (
+                    <div className="text-xs font-serif font-bold text-stone-600 uppercase tracking-wider print:hidden">
+                      All Notes
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 print:grid-cols-2">
+                    {regularNotes.map((note) => (
+                      <NoteCard
+                        key={note.id}
+                        note={note}
+                        notebooks={notebooks}
+                        onUpdateNote={handleUpdateNote}
+                        onDeleteNote={handleDeleteNote}
+                        onEditNote={handleOpenEdit}
+                        onStartRevision={handleStartRevision}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Floating Action Button (Mobile) */}
+      <button
+        onClick={() => setIsTemplateModalOpen(true)}
+        className="md:hidden fixed right-6 bottom-6 w-14 h-14 rounded-full bg-[#37343C] text-white shadow-xl flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition z-40 cursor-pointer print:hidden"
+        title="Add Sticky Note"
+      >
+        <Plus size={24} />
+      </button>
+
+      {/* Footer info */}
+      <footer className="mt-12 py-6 border-t border-[#E8DFC9] text-center text-xs text-stone-500 bg-[#FAF6EF]/60 print:hidden">
+        <p className="flex items-center justify-center gap-2">
+          <span>🌿 LittleNotes</span>
+          <span>•</span>
+          <span>The cozy study notebook for students</span>
+          <span>•</span>
+          <span className="text-emerald-700">✓ Autosaved offline</span>
+        </p>
+      </footer>
+
+      {/* Sticky Note Template Picker Modal */}
+      <StickyNotePickerModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        onSelectPreset={handleSelectPreset}
+      />
+
+      {/* Edit & Shape Modal */}
+      <EditNoteModal
+        note={editingNote}
+        notebooks={notebooks}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingNote(null);
+        }}
+        onSave={handleUpdateNote}
+      />
+
+      {/* Revision & Exam Prep Mode */}
+      <RevisionModal
+        isOpen={isRevisionModalOpen}
+        notes={notes}
+        initialNoteId={revisionInitialId}
+        onClose={() => {
+          setIsRevisionModalOpen(false);
+          setRevisionInitialId(undefined);
+        }}
+      />
+
+      {/* Study Café Timer Modal */}
+      <StudyTimerModal
+        isOpen={isTimerModalOpen}
+        onClose={() => setIsTimerModalOpen(false)}
+      />
+
+      {/* Doodle & Sketch Canvas Modal */}
+      <DoodleCanvasModal
+        isOpen={isDoodleModalOpen}
+        onClose={() => setIsDoodleModalOpen(false)}
+        onSaveDoodle={handleSaveDoodle}
+      />
+    </div>
+  );
+};
+
+export default App;

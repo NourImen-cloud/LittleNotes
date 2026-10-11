@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-paper: #FAF6EF;
+    --color-ink: #37343C;
+    --color-lilac: #E7DDF8;
+    --color-sage: #DCE9DD;
+    --color-blush: #F3DCD6;
+    --color-butter: #FEF3C7;
+    --color-sky: #E0F2FE;
+  }
+
+  body {
+    background-color: var(--bg-paper);
+    color: var(--color-ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Lora', Georgia, serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .font-handwriting {
+    font-family: 'Gaegu', cursive, sans-serif;
+  }
+}
+
+/* Cozy Notebook Graph / Grid Paper texture */
+.grid-paper-bg {
+  background-color: #FAF6EF;
+  background-image: 
+    linear-gradient(to right, rgba(200, 190, 175, 0.22) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(200, 190, 175, 0.22) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.grid-paper-dense {
+  background-color: #FAF6EF;
+  background-image: 
+    linear-gradient(to right, rgba(200, 190, 175, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(200, 190, 175, 0.18) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.ruled-paper-bg {
+  background-color: #FAF6EF;
+  background-image: linear-gradient(to bottom, transparent 27px, rgba(200, 190, 175, 0.25) 28px);
+  background-size: 100% 28px;
+}
+
+/* Custom soft scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(55, 52, 60, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(55, 52, 60, 0.28);
+}
