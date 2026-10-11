@@ -6,12 +6,8 @@ import {
   Grid,
   AlignLeft,
   FileText,
-  Download,
-  Upload,
   Coffee,
-  Moon,
-  Sun,
-  Printer,
+  QrCode,
 } from 'lucide-react';
 
 interface Props {
@@ -24,6 +20,8 @@ interface Props {
   onOpenTemplates: () => void;
   onOpenRevision: () => void;
   onOpenTimer: () => void;
+  onOpenSync: () => void;
+  isPaired: boolean;
   onPrintGuide: () => void;
   onExportNotes: () => void;
   onImportNotes: () => void;
@@ -35,13 +33,12 @@ export const Header: React.FC<Props> = ({
   paperTexture,
   onTextureChange,
   isNightMode,
-  onToggleNightMode,
   onOpenTemplates,
   onOpenRevision,
   onOpenTimer,
-  onPrintGuide,
-  onExportNotes,
-  onImportNotes,
+  onOpenSync,
+  isPaired,
+
 }) => {
   return (
     <header className={`sticky top-0 z-30 ${isNightMode ? 'bg-[#211E26]/90 border-stone-800' : 'bg-[#FAF6EF]/90 border-[#E8DFC9]'} backdrop-blur-md border-b px-4 sm:px-8 py-3 transition-colors print:hidden`}>
@@ -56,14 +53,22 @@ export const Header: React.FC<Props> = ({
               <h1 className={`text-xl sm:text-2xl font-serif font-bold ${isNightMode ? 'text-amber-100' : 'text-[#37343C]'} tracking-tight m-0`}>
                 little notes
               </h1>
-              <p className={`text-[11px] ${isNightMode ? 'text-stone-400' : 'text-stone-500'} font-sans tracking-wide`}>
-                Your thoughts, safely kept.
-              </p>
             </div>
           </div>
 
           {/* Mobile Action Buttons */}
           <div className="flex items-center gap-1.5 md:hidden">
+            <button
+              onClick={onOpenSync}
+              className={`p-2 rounded-xl border transition ${
+                isPaired
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : 'bg-purple-100 text-purple-900 border-purple-200'
+              }`}
+              title="Device Sync / QR Code"
+            >
+              <QrCode size={16} />
+            </button>
             <button
               onClick={onOpenTimer}
               className="p-2 rounded-xl bg-amber-100 text-amber-900"
@@ -140,18 +145,6 @@ export const Header: React.FC<Props> = ({
             </button>
           </div>
 
-          {/* Warm Café Night Mode */}
-          <button
-            onClick={onToggleNightMode}
-            className={`p-2 rounded-xl border transition cursor-pointer ${
-              isNightMode
-                ? 'bg-amber-900/60 border-amber-700/60 text-amber-200'
-                : 'bg-white/80 border-stone-200 text-stone-600 hover:bg-white'
-            }`}
-            title={isNightMode ? 'Switch to Warm Daylight' : 'Switch to Warm Café Night Mode'}
-          >
-            {isNightMode ? <Sun size={14} /> : <Moon size={14} />}
-          </button>
 
           {/* Café Timer */}
           <button
@@ -173,15 +166,23 @@ export const Header: React.FC<Props> = ({
             <span className="hidden sm:inline">Exam Mode</span>
           </button>
 
-          {/* Printable Cheat Sheet */}
+          {/* Device Sync & QR Pairing */}
           <button
-            onClick={onPrintGuide}
-            className="p-1.5 rounded-xl text-stone-500 hover:text-stone-800 hover:bg-stone-200/50 transition cursor-pointer"
-            title="Print Study Guide / Cheat Sheet"
+            onClick={onOpenSync}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition shadow-2xs cursor-pointer ${
+              isPaired
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                : 'bg-white/90 text-stone-700 border-[#E4D9C7] hover:bg-white'
+            }`}
+            title="Sync Phone & PC via QR Code"
           >
-            <Printer size={15} />
+            <QrCode size={14} className={isPaired ? 'text-emerald-600' : 'text-purple-600'} />
+            <span className="hidden sm:inline">{isPaired ? 'Device Synced' : 'Pair Phone'}</span>
           </button>
 
+        
+
+        
           {/* Add Sticky Note button */}
           <button
             onClick={onOpenTemplates}
@@ -191,21 +192,7 @@ export const Header: React.FC<Props> = ({
             <span>Sticky Note</span>
           </button>
 
-          {/* Backup dropdown / export */}
-          <button
-            onClick={onExportNotes}
-            className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition cursor-pointer"
-            title="Backup notes as JSON"
-          >
-            <Download size={14} />
-          </button>
-          <button
-            onClick={onImportNotes}
-            className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition cursor-pointer"
-            title="Restore notes from JSON"
-          >
-            <Upload size={14} />
-          </button>
+          
         </div>
       </div>
     </header>

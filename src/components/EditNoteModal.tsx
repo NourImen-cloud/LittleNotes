@@ -22,15 +22,19 @@ interface Props {
 
 const LANGUAGES = ['python', 'typescript', 'javascript', 'html', 'css', 'sql', 'bash', 'c++', 'rust'];
 
-export const EditNoteModal: React.FC<Props> = ({
+interface ContentProps {
+  note: Note;
+  notebooks: Notebook[];
+  onClose: () => void;
+  onSave: (updated: Note) => void;
+}
+
+const EditNoteModalContent: React.FC<ContentProps> = ({
   note,
   notebooks,
-  isOpen,
   onClose,
   onSave,
 }) => {
-  if (!isOpen || !note) return null;
-
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [notebookId, setNotebookId] = useState(note.notebookId);
@@ -522,5 +526,24 @@ export const EditNoteModal: React.FC<Props> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+export const EditNoteModal: React.FC<Props> = ({
+  note,
+  notebooks,
+  isOpen,
+  onClose,
+  onSave,
+}) => {
+  if (!isOpen || !note) return null;
+
+  return (
+    <EditNoteModalContent
+      note={note}
+      notebooks={notebooks}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 };

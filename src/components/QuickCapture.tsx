@@ -1,16 +1,14 @@
 import React, { useState, useRef } from 'react';
 import type { Note } from '../types';
-import { Send, Sparkles, CheckCircle2, Mic, MicOff, PenTool } from 'lucide-react';
+import { Send, CheckCircle2, Mic, MicOff, PenTool } from 'lucide-react';
 
 interface Props {
   onCapture: (noteData: Partial<Note>) => void;
-  onOpenTemplates: () => void;
   onOpenDoodle: () => void;
 }
 
 export const QuickCapture: React.FC<Props> = ({
   onCapture,
-  onOpenTemplates,
   onOpenDoodle,
 }) => {
   const [content, setContent] = useState('');
@@ -131,13 +129,6 @@ export const QuickCapture: React.FC<Props> = ({
               <span>Doodle</span>
             </button>
 
-            <button
-              onClick={onOpenTemplates}
-              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[#FAF6EF] hover:bg-[#E7DDF8] text-stone-600 hover:text-stone-900 border border-stone-200 transition font-medium cursor-pointer"
-            >
-              <Sparkles size={12} className="text-purple-500" />
-              <span>Templates</span>
-            </button>
           </div>
         </div>
 
@@ -160,7 +151,7 @@ export const QuickCapture: React.FC<Props> = ({
               onFocus={() => setIsExpanded(true)}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="What would you like to remember today? (e.g. Why does PCA maximize variance?)"
+              placeholder="What would you like to remember today? "
               className="w-full resize-none text-sm text-stone-800 placeholder:text-stone-400 bg-transparent px-1 py-1 focus:outline-hidden leading-relaxed"
             />
           </div>

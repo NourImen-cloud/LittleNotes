@@ -10,14 +10,15 @@ interface Props {
   onClose: () => void;
 }
 
-export const RevisionModal: React.FC<Props> = ({
-  isOpen,
+const RevisionModalContent: React.FC<{
+  notes: Note[];
+  initialNoteId?: string;
+  onClose: () => void;
+}> = ({
   notes,
   initialNoteId,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   // Filter notes that have revision content or meaningful explanations
   const studyNotes = notes.filter((n) => n.revisionQuestion || n.stage === 'reuse' || n.title);
   const initialIndex = initialNoteId
@@ -186,5 +187,22 @@ export const RevisionModal: React.FC<Props> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+export const RevisionModal: React.FC<Props> = ({
+  isOpen,
+  notes,
+  initialNoteId,
+  onClose,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <RevisionModalContent
+      notes={notes}
+      initialNoteId={initialNoteId}
+      onClose={onClose}
+    />
   );
 };

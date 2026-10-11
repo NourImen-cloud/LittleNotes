@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Note, Notebook, ThoughtStage, NoteStyle, KawaiiSticker, NoteColor } from './types';
 import { INITIAL_NOTEBOOKS, INITIAL_NOTES } from './data/initialData';
 import { Header } from './components/Header';
@@ -10,6 +10,15 @@ import { EditNoteModal } from './components/EditNoteModal';
 import { RevisionModal } from './components/RevisionModal';
 import { StudyTimerModal } from './components/StudyTimerModal';
 import { DoodleCanvasModal } from './components/DoodleCanvasModal';
+import { SyncModal } from './components/SyncModal';
+import {
+  getStoredRoomCode,
+  saveStoredRoomCode,
+  pushSyncData,
+  pullSyncData,
+  subscribeToSyncRoom,
+} from './utils/syncService';
+import type { SyncStatus } from './utils/syncService';
 import { Plus, Pin } from 'lucide-react';
 
 const STORAGE_NOTES_KEY = 'littlenotes_notes_v1';
@@ -66,6 +75,108 @@ export const App: React.FC = () => {
   const [revisionInitialId, setRevisionInitialId] = useState<string | undefined>();
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [isDoodleModalOpen, setIsDoodleModalOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+
+  // Device Sync State
+  const [syncRoomCode, setSyncRoomCode] = useState<string | null>(() => getStoredRoomCode());
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const isRemoteUpdating = useRef(false);
+
+  // Auto-join if URL contains ?sync=LN-XXXX
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const incoming = params.get('sync');
+      if (incoming) {
+        const cleanCode = incoming.trim().toUpperCase();
+        setSyncRoomCode(cleanCode);
+        saveStoredRoomCode(cleanCode);
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (err) {
+      console.error('Failed to parse sync param', err);
+    }
+  }, []);
+
+  // Room Subscription & Initial Pull
+  useEffect(() => {
+    if (!syncRoomCode) {
+      setSyncStatus('idle');
+      return;
+    }
+
+    setSyncStatus('syncing');
+
+    // 1. Initial Pull
+    pullSyncData(syncRoomCode).then((remote) => {
+      if (remote) {
+        isRemoteUpdating.current = true;
+        if (Array.isArray(remote.notes) && remote.notes.length > 0) {
+          setNotes(remote.notes);
+        }
+        if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
+          setNotebooks(remote.notebooks);
+        }
+        setTimeout(() => {
+          isRemoteUpdating.current = false;
+        }, 300);
+        setSyncStatus('connected');
+      } else {
+        // Room not yet created in cloud, seed with current local state
+        pushSyncData(syncRoomCode, notes, notebooks).then(() => {
+          setSyncStatus('connected');
+        });
+      }
+    });
+
+    // 2. Real-time Subscription
+    const unsubscribe = subscribeToSyncRoom(syncRoomCode, (remote) => {
+      isRemoteUpdating.current = true;
+      if (Array.isArray(remote.notes)) {
+        setNotes(remote.notes);
+      }
+      if (Array.isArray(remote.notebooks)) {
+        setNotebooks(remote.notebooks);
+      }
+      setTimeout(() => {
+        isRemoteUpdating.current = false;
+      }, 300);
+      setSyncStatus('connected');
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [syncRoomCode]);
+
+  // Debounced auto-push when notes or notebooks change
+  useEffect(() => {
+    if (!syncRoomCode || isRemoteUpdating.current) return;
+
+    const timer = setTimeout(() => {
+      setSyncStatus('syncing');
+      pushSyncData(syncRoomCode, notes, notebooks).then((ok) => {
+        setSyncStatus(ok ? 'connected' : 'error');
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [notes, notebooks, syncRoomCode]);
+
+  const handleSetRoomCode = (code: string | null) => {
+    setSyncRoomCode(code);
+    saveStoredRoomCode(code);
+  };
+
+  const handleTriggerSync = () => {
+    if (syncRoomCode) {
+      setSyncStatus('syncing');
+      pushSyncData(syncRoomCode, notes, notebooks).then((ok) => {
+        setSyncStatus(ok ? 'connected' : 'error');
+      });
+    }
+  };
 
   // Persist notes
   useEffect(() => {
@@ -105,11 +216,19 @@ export const App: React.FC = () => {
 
   // Handlers
   const handleCaptureQuickNote = (noteData: Partial<Note>) => {
+    const fallbackNbId = notebooks.some((nb) => nb.id === 'inbox')
+      ? 'inbox'
+      : (notebooks[0]?.id || 'inbox');
+    const targetNbId =
+      noteData.notebookId && notebooks.some((nb) => nb.id === noteData.notebookId)
+        ? noteData.notebookId
+        : (selectedNotebookId !== 'all' ? selectedNotebookId : fallbackNbId);
+
     const newNote: Note = {
       id: 'note-' + Date.now(),
       title: noteData.title || '',
       content: noteData.content || '',
-      notebookId: noteData.notebookId || (selectedNotebookId !== 'all' ? selectedNotebookId : 'inbox'),
+      notebookId: targetNbId,
       color: noteData.color || 'paper',
       styleType: noteData.styleType || 'classic',
       stage: 'catch',
@@ -128,11 +247,15 @@ export const App: React.FC = () => {
     hasChecklist?: boolean;
     hasCode?: boolean;
   }) => {
+    const fallbackNbId = notebooks.some((nb) => nb.id === 'inbox')
+      ? 'inbox'
+      : (notebooks[0]?.id || 'inbox');
+
     const newNote: Note = {
       id: 'note-' + Date.now(),
       title: preset.title,
       content: 'Write your notes or thoughts here...',
-      notebookId: selectedNotebookId !== 'all' ? selectedNotebookId : 'inbox',
+      notebookId: selectedNotebookId !== 'all' ? selectedNotebookId : fallbackNbId,
       color: preset.color,
       styleType: preset.styleType,
       kawaiiSticker: preset.sticker,
@@ -185,6 +308,41 @@ export const App: React.FC = () => {
       color: nb.color,
     };
     setNotebooks([...notebooks, newNb]);
+  };
+
+  const handleDeleteNotebook = (
+    notebookId: string,
+    deleteNotes: boolean = false,
+    targetNotebookId?: string
+  ) => {
+    if (deleteNotes) {
+      setNotes((prevNotes) => prevNotes.filter((n) => n.notebookId !== notebookId));
+    } else if (targetNotebookId) {
+      setNotes((prevNotes) =>
+        prevNotes.map((n) =>
+          n.notebookId === notebookId
+            ? { ...n, notebookId: targetNotebookId, updatedAt: new Date().toISOString() }
+            : n
+        )
+      );
+    } else {
+      const fallbackNb = notebooks.find((nb) => nb.id !== notebookId);
+      if (fallbackNb) {
+        setNotes((prevNotes) =>
+          prevNotes.map((n) =>
+            n.notebookId === notebookId
+              ? { ...n, notebookId: fallbackNb.id, updatedAt: new Date().toISOString() }
+              : n
+          )
+        );
+      }
+    }
+
+    setNotebooks((prevNotebooks) => prevNotebooks.filter((nb) => nb.id !== notebookId));
+
+    if (selectedNotebookId === notebookId) {
+      setSelectedNotebookId('all');
+    }
   };
 
   // Doodle handler
@@ -318,6 +476,8 @@ export const App: React.FC = () => {
           setIsRevisionModalOpen(true);
         }}
         onOpenTimer={() => setIsTimerModalOpen(true)}
+        onOpenSync={() => setIsSyncModalOpen(true)}
+        isPaired={Boolean(syncRoomCode)}
         onPrintGuide={handlePrintGuide}
         onExportNotes={handleExportNotes}
         onImportNotes={handleImportNotes}
@@ -329,7 +489,6 @@ export const App: React.FC = () => {
         <div className="print:hidden">
           <QuickCapture
             onCapture={handleCaptureQuickNote}
-            onOpenTemplates={() => setIsTemplateModalOpen(true)}
             onOpenDoodle={() => setIsDoodleModalOpen(true)}
           />
 
@@ -340,6 +499,7 @@ export const App: React.FC = () => {
             selectedNotebookId={selectedNotebookId}
             onSelectNotebook={setSelectedNotebookId}
             onAddNotebook={handleAddNotebook}
+            onDeleteNotebook={handleDeleteNotebook}
             activeStage={activeStage}
             onSelectStage={setActiveStage}
           />
@@ -453,7 +613,6 @@ export const App: React.FC = () => {
           <span>•</span>
           <span>The cozy study notebook for students</span>
           <span>•</span>
-          <span className="text-emerald-700">✓ Autosaved offline</span>
         </p>
       </footer>
 
@@ -498,6 +657,16 @@ export const App: React.FC = () => {
         isOpen={isDoodleModalOpen}
         onClose={() => setIsDoodleModalOpen(false)}
         onSaveDoodle={handleSaveDoodle}
+      />
+
+      {/* Device Sync & QR Pairing Modal */}
+      <SyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        syncStatus={syncStatus}
+        currentRoomCode={syncRoomCode}
+        onSetRoomCode={handleSetRoomCode}
+        onTriggerSync={handleTriggerSync}
       />
     </div>
   );
