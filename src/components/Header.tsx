@@ -3,9 +3,6 @@ import {
   Search,
   BookOpen,
   Plus,
-  Grid,
-  AlignLeft,
-  FileText,
   Coffee,
   QrCode,
   Minimize2,
@@ -36,8 +33,6 @@ interface Props {
 export const Header: React.FC<Props> = ({
   searchQuery,
   onSearchChange,
-  paperTexture,
-  onTextureChange,
   isNightMode,
   onOpenTemplates,
   onOpenRevision,
@@ -135,44 +130,6 @@ export const Header: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end overflow-x-auto pb-1 md:pb-0">
-          {/* Paper Texture toggle */}
-          <div className={`flex items-center ${isNightMode ? 'bg-[#2B2733] border-stone-700' : 'bg-white/80 border-[#E4D9C7]'} border rounded-xl p-0.5 shadow-2xs`}>
-            <button
-              onClick={() => onTextureChange('grid')}
-              className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
-                paperTexture === 'grid'
-                  ? 'bg-amber-800 text-amber-100 shadow-2xs'
-                  : 'text-stone-400 hover:text-stone-600'
-              }`}
-              title="Grid Paper (Tablet Style)"
-            >
-              <Grid size={14} />
-            </button>
-            <button
-              onClick={() => onTextureChange('ruled')}
-              className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
-                paperTexture === 'ruled'
-                  ? 'bg-amber-800 text-amber-100 shadow-2xs'
-                  : 'text-stone-400 hover:text-stone-600'
-              }`}
-              title="Ruled Paper"
-            >
-              <AlignLeft size={14} />
-            </button>
-            <button
-              onClick={() => onTextureChange('clean')}
-              className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
-                paperTexture === 'clean'
-                  ? 'bg-amber-800 text-amber-100 shadow-2xs'
-                  : 'text-stone-400 hover:text-stone-600'
-              }`}
-              title="Plain Paper"
-            >
-              <FileText size={14} />
-            </button>
-          </div>
 
 
           {/* Café Timer */}
@@ -243,7 +200,8 @@ export const Header: React.FC<Props> = ({
 
           
         </div>
-      </div>
-    </header>
-  );
-};
+    
+  
+  </header>
+  )
+}
