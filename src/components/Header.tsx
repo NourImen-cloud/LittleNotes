@@ -8,6 +8,9 @@ import {
   FileText,
   Coffee,
   QrCode,
+  Minimize2,
+  Maximize2,
+  Download,
 } from 'lucide-react';
 
 interface Props {
@@ -22,6 +25,9 @@ interface Props {
   onOpenTimer: () => void;
   onOpenSync: () => void;
   isPaired: boolean;
+  isWidgetMode: boolean;
+  onToggleWidgetMode: () => void;
+  onOpenInstall: () => void;
   onPrintGuide: () => void;
   onExportNotes: () => void;
   onImportNotes: () => void;
@@ -38,7 +44,12 @@ export const Header: React.FC<Props> = ({
   onOpenTimer,
   onOpenSync,
   isPaired,
-
+  isWidgetMode,
+  onToggleWidgetMode,
+  onOpenInstall,
+  onPrintGuide: _onPrintGuide,
+  onExportNotes: _onExportNotes,
+  onImportNotes: _onImportNotes,
 }) => {
   return (
     <header className={`sticky top-0 z-30 ${isNightMode ? 'bg-[#211E26]/90 border-stone-800' : 'bg-[#FAF6EF]/90 border-[#E8DFC9]'} backdrop-blur-md border-b px-4 sm:px-8 py-3 transition-colors print:hidden`}>
@@ -58,6 +69,24 @@ export const Header: React.FC<Props> = ({
 
           {/* Mobile Action Buttons */}
           <div className="flex items-center gap-1.5 md:hidden">
+            <button
+              onClick={onToggleWidgetMode}
+              className={`p-2 rounded-xl border transition ${
+                isWidgetMode
+                  ? 'bg-purple-100 text-purple-900 border-purple-300'
+                  : 'bg-white/90 border-stone-200 text-stone-600'
+              }`}
+              title={isWidgetMode ? 'Full View' : 'Corner Widget Mode'}
+            >
+              {isWidgetMode ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+            </button>
+            <button
+              onClick={onOpenInstall}
+              className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200"
+              title="Install App"
+            >
+              <Download size={16} />
+            </button>
             <button
               onClick={onOpenSync}
               className={`p-2 rounded-xl border transition ${
@@ -180,9 +209,29 @@ export const Header: React.FC<Props> = ({
             <span className="hidden sm:inline">{isPaired ? 'Device Synced' : 'Pair Phone'}</span>
           </button>
 
-        
+          {/* Install App Button */}
+          <button
+            onClick={onOpenInstall}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#E4D9C7] bg-white/90 hover:bg-white text-stone-700 transition shadow-2xs cursor-pointer"
+            title="Install LittleNotes App (Desktop / Phone)"
+          >
+            <Download size={13} className="text-amber-700" />
+            <span className="hidden sm:inline">Install App</span>
+          </button>
 
-        
+          {/* Corner Sticky Widget Mode Toggle */}
+          <button
+            onClick={onToggleWidgetMode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition shadow-2xs cursor-pointer ${
+              isWidgetMode
+                ? 'bg-purple-100 text-purple-900 border-purple-300 font-semibold'
+                : 'bg-white/90 text-stone-700 border-[#E4D9C7] hover:bg-white'
+            }`}
+            title={isWidgetMode ? 'Expand to Full View' : 'Corner Sticky Widget Mode (small floating window)'}
+          >
+            {isWidgetMode ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
+            <span className="hidden lg:inline">{isWidgetMode ? 'Full View' : 'Corner Mode'}</span>
+          </button>
           {/* Add Sticky Note button */}
           <button
             onClick={onOpenTemplates}

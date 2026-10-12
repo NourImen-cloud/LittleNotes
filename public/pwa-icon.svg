@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="120" fill="#FAF6EF"/>
+  <!-- Cozy sticky note background -->
+  <rect x="96" y="96" width="320" height="320" rx="36" fill="#E7DDF8" stroke="#D8C6F2" stroke-width="8"/>
+  <!-- Washi tape header -->
+  <rect x="186" y="66" width="140" height="42" rx="10" fill="#FEF3C7" stroke="#FDE68A" stroke-width="4" opacity="0.95"/>
+  <!-- Note ruled lines -->
+  <line x1="144" y1="180" x2="368" y2="180" stroke="#B8A7E8" stroke-width="10" stroke-linecap="round"/>
+  <line x1="144" y1="236" x2="368" y2="236" stroke="#B8A7E8" stroke-width="10" stroke-linecap="round"/>
+  <line x1="144" y1="292" x2="290" y2="292" stroke="#B8A7E8" stroke-width="10" stroke-linecap="round"/>
+  <!-- Cute little seedling sprout on bottom corner -->
+  <path d="M350 330 C 350 300, 385 300, 385 330 C 385 360, 350 360, 350 330 Z" fill="#86EFAC"/>
+  <path d="M350 330 C 350 305, 325 305, 325 330 C 325 350, 350 350, 350 330 Z" fill="#4ADE80"/>
+  <path d="M350 330 L 350 365" stroke="#15803D" stroke-width="6" stroke-linecap="round"/>
+</svg>

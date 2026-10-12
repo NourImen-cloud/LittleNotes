@@ -11,6 +11,7 @@ import { RevisionModal } from './components/RevisionModal';
 import { StudyTimerModal } from './components/StudyTimerModal';
 import { DoodleCanvasModal } from './components/DoodleCanvasModal';
 import { SyncModal } from './components/SyncModal';
+import { InstallModal } from './components/InstallModal';
 import {
   getStoredRoomCode,
   saveStoredRoomCode,
@@ -25,6 +26,7 @@ const STORAGE_NOTES_KEY = 'littlenotes_notes_v1';
 const STORAGE_NOTEBOOKS_KEY = 'littlenotes_notebooks_v1';
 const STORAGE_TEXTURE_KEY = 'littlenotes_texture_v1';
 const STORAGE_NIGHT_KEY = 'littlenotes_night_v1';
+const STORAGE_WIDGET_KEY = 'littlenotes_widget_mode_v1';
 
 export const App: React.FC = () => {
   // Load data from localStorage or initial seed
@@ -76,6 +78,49 @@ export const App: React.FC = () => {
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [isDoodleModalOpen, setIsDoodleModalOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Corner Widget Mode
+  const [isWidgetMode, setIsWidgetMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_WIDGET_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Capture PWA beforeinstallprompt event
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handlePromptInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
+
+  const handleToggleWidgetMode = () => {
+    setIsWidgetMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_WIDGET_KEY, String(next));
+      } catch (err) {
+        console.error('Failed to save widget mode preference', err);
+      }
+      return next;
+    });
+  };
 
   // Device Sync State
   const [syncRoomCode, setSyncRoomCode] = useState<string | null>(() => getStoredRoomCode());
@@ -478,13 +523,31 @@ export const App: React.FC = () => {
         onOpenTimer={() => setIsTimerModalOpen(true)}
         onOpenSync={() => setIsSyncModalOpen(true)}
         isPaired={Boolean(syncRoomCode)}
+        isWidgetMode={isWidgetMode}
+        onToggleWidgetMode={handleToggleWidgetMode}
+        onOpenInstall={() => setIsInstallModalOpen(true)}
         onPrintGuide={handlePrintGuide}
         onExportNotes={handleExportNotes}
         onImportNotes={handleImportNotes}
       />
 
       {/* Main Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4">
+      <main className={`flex-1 ${isWidgetMode ? 'max-w-md px-3 py-2' : 'max-w-7xl px-4 sm:px-6 py-4'} w-full mx-auto transition-all duration-300`}>
+        {isWidgetMode && (
+          <div className="mb-3 px-3 py-2 bg-[#E7DDF8]/70 border border-[#D8C6F2] rounded-2xl text-xs text-[#3E2B5A] flex items-center justify-between shadow-2xs">
+            <span className="font-medium flex items-center gap-1.5">
+              <span>📌</span>
+              <span>Corner Widget Mode (Resize to screen corner)</span>
+            </span>
+            <button
+              onClick={handleToggleWidgetMode}
+              className="text-[11px] font-semibold underline hover:text-stone-900 cursor-pointer"
+            >
+              Full View
+            </button>
+          </div>
+        )}
+
         {/* Step 1: Catch it - Instant Quick Capture with Voice & Doodle buttons */}
         <div className="print:hidden">
           <QuickCapture
@@ -553,7 +616,7 @@ export const App: React.FC = () => {
                     <Pin size={13} className="fill-amber-700" />
                     <span>Pinned Notes</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 print:grid-cols-2">
+                  <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 print:grid-cols-2`}>
                     {pinnedNotes.map((note) => (
                       <NoteCard
                         key={note.id}
@@ -577,7 +640,7 @@ export const App: React.FC = () => {
                       All Notes
                     </div>
                   )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 print:grid-cols-2">
+                  <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 print:grid-cols-2`}>
                     {regularNotes.map((note) => (
                       <NoteCard
                         key={note.id}
@@ -667,6 +730,14 @@ export const App: React.FC = () => {
         currentRoomCode={syncRoomCode}
         onSetRoomCode={handleSetRoomCode}
         onTriggerSync={handleTriggerSync}
+      />
+
+      {/* PWA App Installation Guidance Modal */}
+      <InstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        onPromptInstall={handlePromptInstall}
+        canPromptDirectly={Boolean(deferredPrompt)}
       />
     </div>
   );
