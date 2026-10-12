@@ -176,19 +176,6 @@ export const Header: React.FC<Props> = ({
             <span className="hidden sm:inline">Install App</span>
           </button>
 
-          {/* Corner Sticky Widget Mode Toggle */}
-          <button
-            onClick={onToggleWidgetMode}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition shadow-2xs cursor-pointer ${
-              isWidgetMode
-                ? 'bg-purple-100 text-purple-900 border-purple-300 font-semibold'
-                : 'bg-white/90 text-stone-700 border-[#E4D9C7] hover:bg-white'
-            }`}
-            title={isWidgetMode ? 'Expand to Full View' : 'Corner Sticky Widget Mode (small floating window)'}
-          >
-            {isWidgetMode ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
-            <span className="hidden lg:inline">{isWidgetMode ? 'Full View' : 'Corner Mode'}</span>
-          </button>
           {/* Add Sticky Note button */}
           <button
             onClick={onOpenTemplates}
