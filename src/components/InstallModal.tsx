@@ -6,6 +6,7 @@ interface Props {
   onClose: () => void;
   onPromptInstall?: () => void;
   canPromptDirectly: boolean;
+  isInstalled?: boolean;
 }
 
 export const InstallModal: React.FC<Props> = ({
@@ -13,6 +14,7 @@ export const InstallModal: React.FC<Props> = ({
   onClose,
   onPromptInstall,
   canPromptDirectly,
+  isInstalled = false,
 }) => {
   if (!isOpen) return null;
 
@@ -48,8 +50,21 @@ export const InstallModal: React.FC<Props> = ({
           </button>
         </div>
 
+        {/* Already installed banner */}
+        {isInstalled && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1 text-center">
+            <p className="text-xs font-semibold text-emerald-900 flex items-center justify-center gap-1.5">
+              <Check size={14} className="text-emerald-600" />
+              <span>LittleNotes is already installed!</span>
+            </p>
+            <p className="text-[11px] text-emerald-700">
+              You can launch it anytime directly from your desktop or phone home screen.
+            </p>
+          </div>
+        )}
+
         {/* Direct Install Button if supported */}
-        {canPromptDirectly && onPromptInstall && (
+        {!isInstalled && canPromptDirectly && onPromptInstall && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2 text-center">
             <p className="text-xs font-semibold text-emerald-900">
               One-click installation ready!

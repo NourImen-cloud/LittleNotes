@@ -27,6 +27,19 @@ const STORAGE_NOTEBOOKS_KEY = 'littlenotes_notebooks_v1';
 const STORAGE_TEXTURE_KEY = 'littlenotes_texture_v1';
 const STORAGE_NIGHT_KEY = 'littlenotes_night_v1';
 const STORAGE_WIDGET_KEY = 'littlenotes_widget_mode_v1';
+const STORAGE_INSTALLED_KEY = 'littlenotes_installed_v1';
+
+const checkIsStandalone = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    (window.navigator as any).standalone === true ||
+    document.referrer.includes('android-app://')
+  );
+};
 
 export const App: React.FC = () => {
   // Load data from localStorage or initial seed
@@ -80,6 +93,14 @@ export const App: React.FC = () => {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
+    try {
+      if (checkIsStandalone()) return true;
+      return localStorage.getItem(STORAGE_INSTALLED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Corner Widget Mode
   const [isWidgetMode, setIsWidgetMode] = useState<boolean>(() => {
@@ -90,14 +111,57 @@ export const App: React.FC = () => {
     }
   });
 
-  // Capture PWA beforeinstallprompt event
+  // Capture PWA install state and beforeinstallprompt event
   useEffect(() => {
-    const handler = (e: any) => {
+    const standaloneMQ = window.matchMedia('(display-mode: standalone)');
+    const handleMQChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setIsInstalled(true);
+      }
+    };
+    standaloneMQ.addEventListener?.('change', handleMQChange);
+
+    // If getInstalledRelatedApps is supported
+    if ('getInstalledRelatedApps' in navigator) {
+      (navigator as any)
+        .getInstalledRelatedApps()
+        .then((relatedApps: any[]) => {
+          if (Array.isArray(relatedApps) && relatedApps.length > 0) {
+            setIsInstalled(true);
+            try {
+              localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+
+    const promptHandler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      if (!checkIsStandalone()) {
+        setIsInstalled(false);
+        try {
+          localStorage.removeItem(STORAGE_INSTALLED_KEY);
+        } catch {}
+      }
     };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('beforeinstallprompt', promptHandler);
+
+    const appInstalledHandler = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      try {
+        localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
+      } catch {}
+    };
+    window.addEventListener('appinstalled', appInstalledHandler);
+
+    return () => {
+      standaloneMQ.removeEventListener?.('change', handleMQChange);
+      window.removeEventListener('beforeinstallprompt', promptHandler);
+      window.removeEventListener('appinstalled', appInstalledHandler);
+    };
   }, []);
 
   const handlePromptInstall = async () => {
@@ -106,6 +170,10 @@ export const App: React.FC = () => {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
+        setIsInstalled(true);
+        try {
+          localStorage.setItem(STORAGE_INSTALLED_KEY, 'true');
+        } catch {}
       }
     }
   };
@@ -526,6 +594,7 @@ export const App: React.FC = () => {
         isWidgetMode={isWidgetMode}
         onToggleWidgetMode={handleToggleWidgetMode}
         onOpenInstall={() => setIsInstallModalOpen(true)}
+        isInstalled={isInstalled}
         onPrintGuide={handlePrintGuide}
         onExportNotes={handleExportNotes}
         onImportNotes={handleImportNotes}
@@ -737,7 +806,8 @@ export const App: React.FC = () => {
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
         onPromptInstall={handlePromptInstall}
-        canPromptDirectly={Boolean(deferredPrompt)}
+        canPromptDirectly={Boolean(deferredPrompt) && !isInstalled}
+        isInstalled={isInstalled}
       />
     </div>
   );
