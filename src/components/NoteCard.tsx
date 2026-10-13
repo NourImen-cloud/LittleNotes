@@ -74,6 +74,10 @@ export const NoteCard: React.FC<Props> = ({
     }
   };
 
+  const isLongContent =
+    (note.content?.length || 0) > 200 ||
+    (note.content?.split('\n').length || 0) > 5;
+
   return (
     <div
       onClick={() => onEditNote(note)}
@@ -81,7 +85,7 @@ export const NoteCard: React.FC<Props> = ({
         backgroundColor: colorScheme.bg,
         borderColor: colorScheme.border,
       }}
-      className={`group relative rounded-2xl p-5 border shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between hover:-translate-y-0.5 ${
+      className={`group relative rounded-2xl p-5 border shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col hover:-translate-y-0.5 ${
         note.isPinned ? 'ring-2 ring-amber-400/60' : ''
       }`}
     >
@@ -132,25 +136,44 @@ export const NoteCard: React.FC<Props> = ({
       )}
 
       {/* Main Content */}
-      <div className="text-stone-700 text-sm leading-relaxed mb-4 whitespace-pre-wrap font-normal">
-        {note.content}
-      </div>
+      {note.content && (
+        <div className="relative mb-3">
+          <div
+            className={`text-stone-700 text-sm leading-relaxed whitespace-pre-wrap font-normal ${
+              isLongContent ? 'max-h-36 overflow-hidden' : ''
+            }`}
+          >
+            {note.content}
+          </div>
+          {isLongContent && (
+            <div
+              style={{
+                background: `linear-gradient(to top, ${colorScheme.bg} 80%, transparent)`,
+              }}
+              className="absolute bottom-0 left-0 right-0 h-14 flex items-end justify-end pointer-events-none pb-0.5"
+            >
+              <span className="text-[11px] font-medium text-stone-600 bg-white/80 px-2.5 py-0.5 rounded-full shadow-2xs border border-stone-300/60 backdrop-blur-xs">
+                Click to open full note ↗
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Handwritten Doodle / Diagram if present */}
       {note.drawingDataUrl && (
-        <div className="mb-4 rounded-xl overflow-hidden border border-stone-300/80 bg-white shadow-inner p-1">
+        <div className="mb-3 rounded-xl overflow-hidden border border-stone-300/80 bg-white shadow-inner p-1">
           <img
             src={note.drawingDataUrl}
             alt="Handwritten sketch"
-            className="w-full h-auto max-h-48 object-contain rounded-lg"
+            className="w-full h-auto max-h-36 object-contain rounded-lg"
           />
         </div>
       )}
 
       {/* Interactive Checklist if present */}
       {note.checklist && note.checklist.length > 0 && (
-
-        <div className="mb-4 space-y-1.5 p-3 rounded-xl bg-white/70 border border-stone-200/60">
+        <div className="mb-3 space-y-1.5 p-3 rounded-xl bg-white/70 border border-stone-200/60">
           <div className="text-xs font-semibold text-stone-600 mb-1 flex items-center gap-1">
             <CheckSquare size={13} />
             <span>Checklist</span>
@@ -158,7 +181,7 @@ export const NoteCard: React.FC<Props> = ({
               {note.checklist.filter((i) => i.done).length}/{note.checklist.length}
             </span>
           </div>
-          {note.checklist.map((item) => (
+          {note.checklist.slice(0, 3).map((item) => (
             <button
               key={item.id}
               onClick={(e) => handleToggleChecklist(item.id, e)}
@@ -172,7 +195,7 @@ export const NoteCard: React.FC<Props> = ({
                 )}
               </span>
               <span
-                className={`flex-1 transition-all ${
+                className={`flex-1 transition-all truncate ${
                   item.done ? 'line-through text-stone-400' : ''
                 }`}
               >
@@ -180,17 +203,22 @@ export const NoteCard: React.FC<Props> = ({
               </span>
             </button>
           ))}
+          {note.checklist.length > 3 && (
+            <div className="text-[11px] text-stone-400 pt-0.5 text-center font-medium italic">
+              +{note.checklist.length - 3} more items...
+            </div>
+          )}
         </div>
       )}
 
       {/* Code Block if present */}
       {note.codeBlock && (
-        <div className="mb-4 rounded-xl overflow-hidden border border-stone-700/20 bg-[#26242B] text-stone-100 shadow-inner">
+        <div className="mb-3 rounded-xl overflow-hidden border border-stone-700/20 bg-[#26242B] text-stone-100 shadow-inner">
           <div className="flex items-center justify-between px-3 py-1.5 bg-[#1F1E24] text-[11px] text-stone-300 font-mono border-b border-stone-700/40">
             <span className="text-emerald-400">{note.codeBlock.language}</span>
             <button
               onClick={handleCopyCode}
-              className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-sm bg-stone-700 hover:bg-stone-600 text-stone-200 transition"
+              className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-sm bg-stone-700 hover:bg-stone-600 text-stone-200 transition cursor-pointer"
               title="Copy snippet"
             >
               {copiedCode ? (
@@ -206,7 +234,7 @@ export const NoteCard: React.FC<Props> = ({
               )}
             </button>
           </div>
-          <pre className="p-3 text-xs font-mono overflow-x-auto leading-relaxed text-amber-100/90 max-h-48 scrollbar-thin">
+          <pre className="p-3 text-xs font-mono overflow-x-auto leading-relaxed text-amber-100/90 max-h-32 scrollbar-thin">
             <code>{note.codeBlock.code}</code>
           </pre>
         </div>
@@ -214,7 +242,7 @@ export const NoteCard: React.FC<Props> = ({
 
       {/* Revision Prompt Teaser (Step 3: Reuse it) */}
       {note.revisionQuestion && (
-        <div className="mb-4 p-2.5 rounded-xl bg-purple-50/80 border border-purple-200/80 flex items-start gap-2">
+        <div className="mb-3 p-2.5 rounded-xl bg-purple-50/80 border border-purple-200/80 flex items-start gap-2">
           <Sparkles size={14} className="text-purple-600 mt-0.5 shrink-0" />
           <div className="text-xs">
             <span className="font-semibold text-purple-900 block">Revision Prompt:</span>
@@ -238,7 +266,7 @@ export const NoteCard: React.FC<Props> = ({
       )}
 
       {/* Footer Info & Actions */}
-      <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-stone-400">
+      <div className="mt-auto pt-3 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-stone-400">
         <span>
           {new Date(note.updatedAt).toLocaleDateString(undefined, {
             month: 'short',

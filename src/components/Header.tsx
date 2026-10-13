@@ -115,27 +115,29 @@ export const Header: React.FC<Props> = ({
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full md:max-w-md">
+        <div className="relative w-full md:flex-1 md:max-w-md">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search notes, formulas, code, or tags..."
-            className={`w-full ${isNightMode ? 'bg-[#2B2733] border-stone-700 text-amber-100 placeholder:text-stone-500' : 'bg-white/90 border-[#E3D8C6] text-stone-800 placeholder:text-stone-400'} border rounded-full pl-9 pr-4 py-1.5 text-xs focus:outline-hidden focus:border-stone-500 focus:ring-1 focus:ring-stone-500 shadow-xs`}
+            className={`w-full ${isNightMode ? 'bg-[#2B2733] border-stone-700 text-amber-100 placeholder:text-stone-500' : 'bg-white/90 border-[#E3D8C6] text-stone-800 placeholder:text-stone-400'} border rounded-full pl-9 pr-8 py-1.5 text-xs focus:outline-hidden focus:border-stone-500 focus:ring-1 focus:ring-stone-500 shadow-xs`}
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-700"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 cursor-pointer"
+              title="Clear search"
             >
               ✕
             </button>
           )}
         </div>
 
-
-
+        {/* Desktop Action Buttons */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           {/* Café Timer */}
           <button
             onClick={onOpenTimer}
@@ -185,16 +187,13 @@ export const Header: React.FC<Props> = ({
           {/* Add Sticky Note button */}
           <button
             onClick={onOpenTemplates}
-            className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#37343C] hover:bg-stone-800 text-white text-xs font-medium transition shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#37343C] hover:bg-stone-800 text-white text-xs font-medium transition shadow-xs cursor-pointer"
           >
             <Plus size={14} />
             <span>Sticky Note</span>
           </button>
-
-          
         </div>
-    
-  
-  </header>
+      </div>
+    </header>
   )
 }

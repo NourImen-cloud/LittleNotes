@@ -16,7 +16,9 @@ export const QuickCapture: React.FC<Props> = ({
   const [title, setTitle] = useState('');
   const [recentlySaved, setRecentlySaved] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
+  const interimRef = useRef('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const toggleListening = () => {
@@ -32,6 +34,12 @@ export const QuickCapture: React.FC<Props> = ({
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      if (interimRef.current.trim()) {
+        const lastChunk = interimRef.current.trim();
+        setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
+        interimRef.current = '';
+        setInterimTranscript('');
+      }
       setIsListening(false);
       return;
     }
@@ -40,7 +48,7 @@ export const QuickCapture: React.FC<Props> = ({
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = navigator.language || 'en-US';
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -48,20 +56,47 @@ export const QuickCapture: React.FC<Props> = ({
       };
 
       recognition.onresult = (event: any) => {
-        let transcript = '';
+        let finalChunk = '';
+        let interimChunk = '';
+
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalChunk += result[0].transcript;
+          } else {
+            interimChunk += result[0].transcript;
+          }
         }
-        setContent((prev) => (prev ? prev + ' ' + transcript : transcript));
+
+        if (finalChunk.trim()) {
+          setContent((prev) => {
+            const cleanPrev = prev.trim();
+            const cleanNew = finalChunk.trim();
+            return cleanPrev ? `${cleanPrev} ${cleanNew}` : cleanNew;
+          });
+          interimRef.current = '';
+          setInterimTranscript('');
+        } else if (interimChunk) {
+          interimRef.current = interimChunk;
+          setInterimTranscript(interimChunk);
+        }
       };
 
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error', event);
         setIsListening(false);
+        interimRef.current = '';
+        setInterimTranscript('');
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        if (interimRef.current.trim()) {
+          const lastChunk = interimRef.current.trim();
+          setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
+          interimRef.current = '';
+          setInterimTranscript('');
+        }
       };
 
       recognitionRef.current = recognition;
@@ -69,6 +104,8 @@ export const QuickCapture: React.FC<Props> = ({
     } catch (err) {
       console.error(err);
       setIsListening(false);
+      interimRef.current = '';
+      setInterimTranscript('');
     }
   };
 
@@ -79,6 +116,8 @@ export const QuickCapture: React.FC<Props> = ({
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
+      interimRef.current = '';
+      setInterimTranscript('');
     }
 
     onCapture({
@@ -166,7 +205,13 @@ export const QuickCapture: React.FC<Props> = ({
               ) : isListening ? (
                 <span className="text-rose-600 flex items-center gap-1.5 font-medium animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                  Listening... speak your thought
+                  {interimTranscript ? (
+                    <span className="italic text-stone-600 font-normal truncate max-w-xs sm:max-w-md">
+                      &ldquo;{interimTranscript}&rdquo;
+                    </span>
+                  ) : (
+                    'Listening... speak your thought'
+                  )}
                 </span>
               ) : (
                 <span>

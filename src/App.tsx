@@ -20,7 +20,7 @@ import {
   subscribeToSyncRoom,
 } from './utils/syncService';
 import type { SyncStatus } from './utils/syncService';
-import { Plus, Pin } from 'lucide-react';
+import { Plus, Pin, Search } from 'lucide-react';
 
 const STORAGE_NOTES_KEY = 'littlenotes_notes_v1';
 const STORAGE_NOTEBOOKS_KEY = 'littlenotes_notebooks_v1';
@@ -536,24 +536,46 @@ export const App: React.FC = () => {
   };
 
   // Filter notes
+  const hasSearch = searchQuery.trim().length > 0;
+  const q = searchQuery.trim().toLowerCase();
+
   const filteredNotes = notes.filter((n) => {
-    // Notebook filter
+    // When searching, perform global search across all fields safely
+    if (hasSearch) {
+      const matchTitle = (n.title || '').toLowerCase().includes(q);
+      const matchContent = (n.content || '').toLowerCase().includes(q);
+      const matchTags =
+        Array.isArray(n.tags) && n.tags.some((t) => (t || '').toLowerCase().includes(q));
+      const matchCode = (n.codeBlock?.code || '').toLowerCase().includes(q);
+      const matchRevision =
+        (n.revisionQuestion || '').toLowerCase().includes(q) ||
+        (n.revisionAnswer || '').toLowerCase().includes(q);
+      const matchChecklist =
+        Array.isArray(n.checklist) &&
+        n.checklist.some((item) => (item.text || '').toLowerCase().includes(q));
+      const matchAudio = (n.audioNote?.transcript || '').toLowerCase().includes(q);
+      const nb = notebooks.find((b) => b.id === n.notebookId);
+      const matchNotebook = (nb?.name || '').toLowerCase().includes(q);
+
+      return (
+        matchTitle ||
+        matchContent ||
+        matchTags ||
+        matchCode ||
+        matchRevision ||
+        matchChecklist ||
+        matchAudio ||
+        matchNotebook
+      );
+    }
+
+    // Notebook filter (when not actively searching)
     if (selectedNotebookId !== 'all' && n.notebookId !== selectedNotebookId) {
       return false;
     }
-    // Stage filter
+    // Stage filter (when not actively searching)
     if (activeStage !== 'all' && n.stage !== activeStage) {
       return false;
-    }
-    // Search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = n.title.toLowerCase().includes(q);
-      const matchContent = n.content.toLowerCase().includes(q);
-      const matchTags = n.tags.some((t) => t.toLowerCase().includes(q));
-      const matchCode = n.codeBlock?.code.toLowerCase().includes(q);
-      const matchRevision = n.revisionQuestion?.toLowerCase().includes(q);
-      return matchTitle || matchContent || matchTags || matchCode || matchRevision;
     }
     return true;
   });
@@ -649,6 +671,25 @@ export const App: React.FC = () => {
 
         {/* Notes Grid */}
         <div className="max-w-6xl mx-auto px-4 mt-6">
+          {/* Active Search Results Indicator */}
+          {hasSearch && (
+            <div className="flex items-center justify-between bg-amber-50/90 border border-amber-200/80 rounded-2xl px-4 py-2.5 mb-5 text-xs text-amber-900 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <Search size={14} className="text-amber-700 shrink-0" />
+                <span>
+                  Found <strong>{filteredNotes.length}</strong> {filteredNotes.length === 1 ? 'note' : 'notes'} matching &ldquo;<span className="font-semibold">{searchQuery}</span>&rdquo; (searched across all notebooks)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-amber-800 hover:text-amber-950 font-medium underline cursor-pointer ml-3 shrink-0"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
+
           {filteredNotes.length === 0 ? (
             <div className="text-center py-16 px-4 bg-white/70 border border-dashed border-[#DFCDB3] rounded-3xl max-w-md mx-auto space-y-3">
               <span className="text-4xl">🪴</span>
@@ -685,7 +726,7 @@ export const App: React.FC = () => {
                     <Pin size={13} className="fill-amber-700" />
                     <span>Pinned Notes</span>
                   </div>
-                  <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 print:grid-cols-2`}>
+                  <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 items-start print:grid-cols-2`}>
                     {pinnedNotes.map((note) => (
                       <NoteCard
                         key={note.id}
@@ -709,7 +750,7 @@ export const App: React.FC = () => {
                       All Notes
                     </div>
                   )}
-                  <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 print:grid-cols-2`}>
+                  <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 items-start print:grid-cols-2`}>
                     {regularNotes.map((note) => (
                       <NoteCard
                         key={note.id}
