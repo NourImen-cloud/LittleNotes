@@ -19,9 +19,26 @@ export const QuickCapture: React.FC<Props> = ({
   const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
   const interimRef = useRef('');
+  const shouldListenRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const toggleListening = () => {
+  const stopListening = () => {
+    shouldListenRef.current = false;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+    if (interimRef.current.trim()) {
+      const lastChunk = interimRef.current.trim();
+      setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
+      interimRef.current = '';
+      setInterimTranscript('');
+    }
+    setIsListening(false);
+  };
+
+  const startRecognition = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -30,82 +47,103 @@ export const QuickCapture: React.FC<Props> = ({
       return;
     }
 
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (interimRef.current.trim()) {
-        const lastChunk = interimRef.current.trim();
-        setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
-        interimRef.current = '';
-        setInterimTranscript('');
-      }
-      setIsListening(false);
-      return;
-    }
+    shouldListenRef.current = true;
+    setIsListening(true);
+    setIsExpanded(true);
 
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = navigator.language || 'en-US';
+    const initSession = () => {
+      if (!shouldListenRef.current) return;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        setIsExpanded(true);
-      };
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = navigator.language || 'en-US';
 
-      recognition.onresult = (event: any) => {
-        let finalChunk = '';
-        let interimChunk = '';
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalChunk += result[0].transcript;
-          } else {
-            interimChunk += result[0].transcript;
+        recognition.onresult = (event: any) => {
+          let finalChunk = '';
+          let interimChunk = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result = event.results[i];
+            if (result.isFinal) {
+              finalChunk += result[0].transcript;
+            } else {
+              interimChunk += result[0].transcript;
+            }
           }
+
+          if (finalChunk.trim()) {
+            setContent((prev) => {
+              const cleanPrev = prev.trim();
+              const cleanNew = finalChunk.trim();
+              return cleanPrev ? `${cleanPrev} ${cleanNew}` : cleanNew;
+            });
+            interimRef.current = '';
+            setInterimTranscript('');
+          } else if (interimChunk) {
+            interimRef.current = interimChunk;
+            setInterimTranscript(interimChunk);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.warn('Speech recognition warning/error:', event.error);
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            alert('Microphone access was blocked. Please grant microphone permissions in your browser.');
+            stopListening();
+            return;
+          }
+          // Note: 'no-speech' is triggered when the user pauses for 3-5 seconds.
+          // We ignore it here because onend will fire and seamlessly restart if shouldListenRef is true.
+        };
+
+        recognition.onend = () => {
+          if (interimRef.current.trim()) {
+            const lastChunk = interimRef.current.trim();
+            setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
+            interimRef.current = '';
+            setInterimTranscript('');
+          }
+
+          // If user hasn't clicked stop, seamlessly keep listening across silence pauses!
+          if (shouldListenRef.current) {
+            setTimeout(() => {
+              if (shouldListenRef.current) {
+                initSession();
+              }
+            }, 100);
+          } else {
+            setIsListening(false);
+          }
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err) {
+        console.error('Failed to start speech recognition session', err);
+        if (shouldListenRef.current) {
+          setTimeout(() => {
+            if (shouldListenRef.current) initSession();
+          }, 300);
+        } else {
+          setIsListening(false);
         }
+      }
+    };
 
-        if (finalChunk.trim()) {
-          setContent((prev) => {
-            const cleanPrev = prev.trim();
-            const cleanNew = finalChunk.trim();
-            return cleanPrev ? `${cleanPrev} ${cleanNew}` : cleanNew;
-          });
-          interimRef.current = '';
-          setInterimTranscript('');
-        } else if (interimChunk) {
-          interimRef.current = interimChunk;
-          setInterimTranscript(interimChunk);
-        }
-      };
+    initSession();
+  };
 
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error', event);
-        setIsListening(false);
-        interimRef.current = '';
-        setInterimTranscript('');
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        if (interimRef.current.trim()) {
-          const lastChunk = interimRef.current.trim();
-          setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
-          interimRef.current = '';
-          setInterimTranscript('');
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err) {
-      console.error(err);
-      setIsListening(false);
-      interimRef.current = '';
-      setInterimTranscript('');
+  const toggleListening = () => {
+    if (isListening || shouldListenRef.current) {
+      stopListening();
+    } else {
+      startRecognition();
     }
   };
 
@@ -113,11 +151,8 @@ export const QuickCapture: React.FC<Props> = ({
     if (e) e.preventDefault();
     if (!content.trim() && !title.trim()) return;
 
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      interimRef.current = '';
-      setInterimTranscript('');
+    if (isListening || shouldListenRef.current) {
+      stopListening();
     }
 
     onCapture({
@@ -230,7 +265,7 @@ export const QuickCapture: React.FC<Props> = ({
                     ? 'bg-rose-500 text-white border-rose-600 animate-pulse shadow-xs'
                     : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
                 }`}
-                title={isListening ? 'Stop recording voice' : 'Dictate voice memo (15-sec capture)'}
+                title={isListening ? 'Stop recording voice' : 'Dictate note with microphone (click to start / stop)'}
               >
                 {isListening ? <MicOff size={13} /> : <Mic size={13} />}
               </button>
