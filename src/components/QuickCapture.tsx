@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { Note } from '../types';
 import { Send, CheckCircle2, Mic, MicOff, PenTool } from 'lucide-react';
 
@@ -16,11 +16,18 @@ export const QuickCapture: React.FC<Props> = ({
   const [title, setTitle] = useState('');
   const [recentlySaved, setRecentlySaved] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState('');
+  const [speechLang, setSpeechLang] = useState('en-US');
+  const [speechError, setSpeechError] = useState<string | null>(null);
+
   const recognitionRef = useRef<any>(null);
-  const interimRef = useRef('');
   const shouldListenRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef(content);
+  const baseContentRef = useRef('');
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   const stopListening = () => {
     shouldListenRef.current = false;
@@ -28,12 +35,6 @@ export const QuickCapture: React.FC<Props> = ({
       try {
         recognitionRef.current.stop();
       } catch {}
-    }
-    if (interimRef.current.trim()) {
-      const lastChunk = interimRef.current.trim();
-      setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
-      interimRef.current = '';
-      setInterimTranscript('');
     }
     setIsListening(false);
   };
@@ -47,7 +48,9 @@ export const QuickCapture: React.FC<Props> = ({
       return;
     }
 
+    setSpeechError(null);
     shouldListenRef.current = true;
+    baseContentRef.current = contentRef.current;
     setIsListening(true);
     setIsExpanded(true);
 
@@ -58,59 +61,54 @@ export const QuickCapture: React.FC<Props> = ({
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = navigator.language || 'en-US';
+        recognition.lang = speechLang;
 
         recognition.onstart = () => {
           setIsListening(true);
+          setSpeechError(null);
         };
 
         recognition.onresult = (event: any) => {
-          let finalChunk = '';
-          let interimChunk = '';
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
-            if (result.isFinal) {
-              finalChunk += result[0].transcript;
-            } else {
-              interimChunk += result[0].transcript;
-            }
+          let sessionTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            sessionTranscript += event.results[i][0].transcript + ' ';
           }
+          sessionTranscript = sessionTranscript.trim();
 
-          if (finalChunk.trim()) {
-            setContent((prev) => {
-              const cleanPrev = prev.trim();
-              const cleanNew = finalChunk.trim();
-              return cleanPrev ? `${cleanPrev} ${cleanNew}` : cleanNew;
-            });
-            interimRef.current = '';
-            setInterimTranscript('');
-          } else if (interimChunk) {
-            interimRef.current = interimChunk;
-            setInterimTranscript(interimChunk);
+          if (sessionTranscript) {
+            const base = baseContentRef.current.trim();
+            const fullText = base ? `${base} ${sessionTranscript}` : sessionTranscript;
+            setContent(fullText);
           }
         };
 
         recognition.onerror = (event: any) => {
           console.warn('Speech recognition warning/error:', event.error);
+          if (event.error === 'no-speech') {
+            return;
+          }
           if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            alert('Microphone access was blocked. Please grant microphone permissions in your browser.');
+            setSpeechError('Microphone permission was blocked. Please allow microphone access in your browser settings.');
             stopListening();
             return;
           }
-          // Note: 'no-speech' is triggered when the user pauses for 3-5 seconds.
-          // We ignore it here because onend will fire and seamlessly restart if shouldListenRef is true.
+          if (event.error === 'network') {
+            setSpeechError('Speech service requires internet access to connect to Google Speech servers.');
+            stopListening();
+            return;
+          }
+          if (event.error === 'audio-capture') {
+            setSpeechError('No microphone detected. Please check your audio input device.');
+            stopListening();
+            return;
+          }
+          setSpeechError(`Speech recognition issue: ${event.error}`);
         };
 
         recognition.onend = () => {
-          if (interimRef.current.trim()) {
-            const lastChunk = interimRef.current.trim();
-            setContent((prev) => (prev.trim() ? `${prev.trim()} ${lastChunk}` : lastChunk));
-            interimRef.current = '';
-            setInterimTranscript('');
-          }
+          // Commit current text as the new base for the next segment
+          baseContentRef.current = contentRef.current;
 
-          // If user hasn't clicked stop, seamlessly keep listening across silence pauses!
           if (shouldListenRef.current) {
             setTimeout(() => {
               if (shouldListenRef.current) {
@@ -223,12 +221,28 @@ export const QuickCapture: React.FC<Props> = ({
               rows={isExpanded ? 3 : 1}
               value={content}
               onFocus={() => setIsExpanded(true)}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value);
+                baseContentRef.current = e.target.value;
+              }}
               onKeyDown={handleKeyDown}
               placeholder="What would you like to remember today? "
               className="w-full resize-none text-sm text-stone-800 placeholder:text-stone-400 bg-transparent px-1 py-1 focus:outline-hidden leading-relaxed"
             />
           </div>
+
+          {speechError && (
+            <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-1.5 flex items-center justify-between">
+              <span>{speechError}</span>
+              <button
+                type="button"
+                onClick={() => setSpeechError(null)}
+                className="text-rose-400 hover:text-rose-700 font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs text-stone-400">
             <div className="flex items-center gap-2">
@@ -240,13 +254,7 @@ export const QuickCapture: React.FC<Props> = ({
               ) : isListening ? (
                 <span className="text-rose-600 flex items-center gap-1.5 font-medium animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                  {interimTranscript ? (
-                    <span className="italic text-stone-600 font-normal truncate max-w-xs sm:max-w-md">
-                      &ldquo;{interimTranscript}&rdquo;
-                    </span>
-                  ) : (
-                    'Listening... speak your thought'
-                  )}
+                  Listening in {speechLang.startsWith('en') ? 'English' : speechLang.startsWith('fr') ? 'French' : speechLang}...
                 </span>
               ) : (
                 <span>
@@ -255,7 +263,20 @@ export const QuickCapture: React.FC<Props> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {/* Language Selector */}
+              <select
+                value={speechLang}
+                onChange={(e) => setSpeechLang(e.target.value)}
+                className="text-[11px] bg-stone-50 border border-stone-200 text-stone-600 rounded-lg px-1.5 py-1 focus:outline-hidden cursor-pointer"
+                title="Dictation language (change if dictating in another language)"
+              >
+                <option value="en-US">🇺🇸 EN</option>
+                <option value="fr-FR">🇫🇷 FR</option>
+                <option value="ar-SA">🇸🇦 AR</option>
+                <option value="es-ES">🇪🇸 ES</option>
+              </select>
+
               {/* Voice Memo Mic Button */}
               <button
                 type="button"
@@ -265,7 +286,7 @@ export const QuickCapture: React.FC<Props> = ({
                     ? 'bg-rose-500 text-white border-rose-600 animate-pulse shadow-xs'
                     : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
                 }`}
-                title={isListening ? 'Stop recording voice' : 'Dictate note with microphone (click to start / stop)'}
+                title={isListening ? 'Stop dictation' : 'Dictate note with microphone'}
               >
                 {isListening ? <MicOff size={13} /> : <Mic size={13} />}
               </button>
