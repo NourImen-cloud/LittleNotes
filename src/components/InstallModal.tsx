@@ -318,6 +318,13 @@ export const InstallModal: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
+
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 flex items-start gap-2">
+                <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>100% Safe & Private</strong>: LittleNotes is a modern Progressive Web App (PWA). You never download an untrusted APK file, so Google Play Protect keeps your device completely safe.
+                </span>
+              </div>
             </div>
           )}
 
