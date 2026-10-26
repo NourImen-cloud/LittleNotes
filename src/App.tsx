@@ -19,6 +19,7 @@ import {
   pushSyncData,
   pullSyncData,
   subscribeToSyncRoom,
+  requestSyncSnapshot,
 } from './utils/syncService';
 import type { SyncStatus } from './utils/syncService';
 import { Plus, Pin, Search } from 'lucide-react';
@@ -103,6 +104,14 @@ export const App: React.FC = () => {
     try {
       if (checkIsStandalone()) return true;
       return localStorage.getItem(STORAGE_INSTALLED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isBannerDismissed, setIsBannerDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('littlenotes_banner_dismissed') === 'true';
     } catch {
       return false;
     }
@@ -211,12 +220,15 @@ export const App: React.FC = () => {
     notebooksRef.current = notebooks;
   }, [notebooks]);
 
+  const isJoinedFromUrlRef = useRef(false);
+
   // Auto-join if URL contains ?sync=LN-XXXX
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const incoming = params.get('sync');
       if (incoming) {
+        isJoinedFromUrlRef.current = true;
         const cleanCode = incoming.trim().toUpperCase();
         setSyncRoomCode(cleanCode);
         saveStoredRoomCode(cleanCode);
@@ -237,44 +249,50 @@ export const App: React.FC = () => {
 
     setSyncStatus('syncing');
 
-    // 1. Initial Pull: grab latest notes from the room immediately
-    pullSyncData(syncRoomCode).then((remote) => {
-      if (remote && Array.isArray(remote.notes) && remote.notes.length > 0) {
-        isRemoteUpdating.current = true;
+    const applyRemoteData = (remote: { notes?: Note[]; notebooks?: Notebook[] }) => {
+      isRemoteUpdating.current = true;
+      if (Array.isArray(remote.notes) && remote.notes.length > 0) {
         setNotes(remote.notes);
-        if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
-          setNotebooks(remote.notebooks);
-        }
-        setTimeout(() => {
-          isRemoteUpdating.current = false;
-        }, 400);
-        setSyncStatus('connected');
+      }
+      if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
+        setNotebooks(remote.notebooks);
+      }
+      setTimeout(() => {
+        isRemoteUpdating.current = false;
+      }, 400);
+      setSyncStatus('connected');
+    };
+
+    // 1. Initial Pull: grab latest notes & notebooks from the room snapshot
+    pullSyncData(syncRoomCode).then((remote) => {
+      if (
+        remote &&
+        ((Array.isArray(remote.notes) && remote.notes.length > 0) ||
+          (Array.isArray(remote.notebooks) && remote.notebooks.length > 0))
+      ) {
+        applyRemoteData(remote);
+      } else if (!isJoinedFromUrlRef.current) {
+        // If room is fresh on the creating device (e.g. PC), push our current notes & notebooks to the room
+        pushSyncData(syncRoomCode, notesRef.current, notebooksRef.current, 'SYNC_FULL').then((ok) => {
+          setSyncStatus(ok ? 'connected' : 'idle');
+        });
       } else {
-        // If room is fresh, publish our current notes so the other device receives them
-        const isFromUrl = new URLSearchParams(window.location.search).has('sync');
-        if (!isFromUrl) {
-          pushSyncData(syncRoomCode, notesRef.current, notebooksRef.current).then((ok) => {
-            setSyncStatus(ok ? 'connected' : 'idle');
-          });
-        } else {
+        // Device joined via link/QR: ask the host device to send its full snapshot
+        requestSyncSnapshot(syncRoomCode).then(() => {
           setSyncStatus('connected');
-        }
+        });
       }
     });
 
-    // 2. Real-time stream: listens for updates published by the other device
+    // 2. Real-time stream: listens for updates and snapshot requests
     const unsubscribe = subscribeToSyncRoom(syncRoomCode, (remote) => {
-      if (Array.isArray(remote.notes)) {
-        isRemoteUpdating.current = true;
-        setNotes(remote.notes);
-        if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
-          setNotebooks(remote.notebooks);
-        }
-        setTimeout(() => {
-          isRemoteUpdating.current = false;
-        }, 400);
-        setSyncStatus('connected');
+      if (remote.type === 'REQUEST_SYNC') {
+        // Another device just joined! Transmit our current notes & notebooks immediately
+        pushSyncData(syncRoomCode, notesRef.current, notebooksRef.current, 'SYNC_FULL');
+        return;
       }
+
+      applyRemoteData(remote);
     });
 
     return () => {
@@ -791,6 +809,39 @@ export const App: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Mobile Install Promotion Banner */}
+      {!isInstalled && !isBannerDismissed && (
+        <div className="md:hidden fixed bottom-22 left-4 right-4 z-30 bg-stone-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-xl flex items-center justify-between border border-stone-700 animate-in slide-in-from-bottom duration-300">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-lg shrink-0">📲</span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold truncate">Install on your phone</p>
+              <p className="text-[10px] text-stone-300 truncate">Adds to home screen & runs full screen</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            <button
+              onClick={() => setIsInstallModalOpen(true)}
+              className="px-2.5 py-1 bg-[#E7DDF8] hover:bg-[#D8C6F2] text-[#3E2B5A] rounded-xl text-xs font-semibold shadow-xs cursor-pointer transition"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => {
+                setIsBannerDismissed(true);
+                try {
+                  sessionStorage.setItem('littlenotes_banner_dismissed', 'true');
+                } catch {}
+              }}
+              className="p-1 text-stone-400 hover:text-white rounded-lg transition"
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Action Button (Mobile) */}
       <button

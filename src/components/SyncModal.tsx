@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Download,
   Upload,
-  Zap,
   Globe,
 } from 'lucide-react';
 import {
@@ -40,15 +39,15 @@ export const SyncModal: React.FC<Props> = ({
   onClose,
   syncStatus,
   currentRoomCode,
-  notes,
-  notebooks,
+  notes: _notes,
+  notebooks: _notebooks,
   onSetRoomCode,
   onTriggerSync,
   onExportNotes,
   onImportNotes,
   onOpenScanner,
 }) => {
-  const [activeTab, setActiveTab] = useState<'live' | 'beam' | 'join'>('live');
+  const [activeTab, setActiveTab] = useState<'live' | 'join'>('live');
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [inputCode, setInputCode] = useState('');
@@ -81,30 +80,13 @@ export const SyncModal: React.FC<Props> = ({
       window.location.hostname.startsWith('10.') ||
       window.location.hostname.startsWith('172.'));
 
-  const PUBLIC_TUNNEL_URL = 'https://titanium-trust-worldcat-exams.trycloudflare.com';
+  const PUBLIC_TUNNEL_URL = 'https://architecture-nec-facilities-adaptor.trycloudflare.com';
 
   // Generate pairing URL: use public HTTPS tunnel when on local PC so phones can actually reach it
   const baseDomain =
     customDomain.trim() ||
     (isLocalHostOrPrivateIP ? PUBLIC_TUNNEL_URL : window.location.origin);
   const pairingUrl = `${baseDomain}${window.location.pathname}?sync=${encodeURIComponent(activeCode)}`;
-
-  // Generate Direct Offline Beam Data (Works with 0% network or Wi-Fi required)
-  const getBeamPayload = () => {
-    const compactNotes = notes.map((n) => ({
-      id: n.id,
-      title: n.title,
-      content: n.content ? n.content.slice(0, 500) : '',
-      color: n.color,
-      styleType: n.styleType,
-      stage: n.stage,
-      checklist: n.checklist,
-      codeBlock: n.codeBlock,
-      tags: n.tags,
-    }));
-    const json = JSON.stringify({ notes: compactNotes, notebooks });
-    return `littlenotes:beam:${encodeURIComponent(json)}`;
-  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(pairingUrl);
@@ -193,19 +175,7 @@ export const SyncModal: React.FC<Props> = ({
             }`}
           >
             <QrCode size={13} />
-            <span>Live Sync</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('beam')}
-            className={`pb-2.5 px-3 border-b-2 transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'beam'
-                ? 'border-purple-600 text-purple-900 font-semibold'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Zap size={13} className="text-amber-600" />
-            <span>Offline QR Beam</span>
+            <span>Scan QR Code</span>
           </button>
 
           <button
@@ -343,43 +313,7 @@ export const SyncModal: React.FC<Props> = ({
             </div>
           )}
 
-          {/* TAB 2: OFFLINE QR BEAM (Zero network / zero Wi-Fi required) */}
-          {activeTab === 'beam' && (
-            <div className="space-y-4">
-              <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 space-y-1">
-                <div className="font-semibold flex items-center gap-1.5">
-                  <Zap size={14} className="text-amber-600" />
-                  <span>100% Offline Direct Beam</span>
-                </div>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  This QR code encodes your notes directly. No Wi-Fi, internet connection, or IP address is needed! Simply scan this QR code with the LittleNotes camera scanner on your phone.
-                </p>
-              </div>
-
-              <div className="bg-white border border-[#DFCDB3] rounded-2xl p-5 flex flex-col items-center justify-center text-center shadow-xs">
-                <div className="p-3 bg-white border border-stone-200/80 rounded-2xl shadow-xs mb-3">
-                  <QRCodeSVG
-                    value={getBeamPayload()}
-                    size={185}
-                    level="L"
-                    fgColor="#2F2936"
-                    bgColor="#FFFFFF"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <p className="font-serif font-bold text-stone-800 text-sm">
-                    Scan with LittleNotes Camera
-                  </p>
-                  <p className="text-xs text-stone-500 max-w-xs">
-                    {notes.length} note(s) encoded directly into this QR code.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: ENTER CODE */}
+          {/* TAB 2: ENTER CODE */}
           {activeTab === 'join' && (
             <div className="space-y-4">
               <div className="space-y-1">

@@ -1,8 +1,8 @@
 import type { Note, Notebook } from '../types';
 
 export interface SyncPayload {
-  notes: Note[];
-  notebooks: Notebook[];
+  notes?: Note[];
+  notebooks?: Notebook[];
   timestamp: number;
   senderId?: string;
   type?: 'SYNC_FULL' | 'SYNC_UPDATE' | 'REQUEST_SYNC';
@@ -51,13 +51,52 @@ function getChannelTopic(roomCode: string): string {
 }
 
 /**
+ * Safely extract SyncPayload from either an inline message or an attached file URL.
+ * ntfy.sh automatically converts bodies >4096 bytes into attachment files.
+ */
+async function extractPayload(item: any): Promise<SyncPayload | null> {
+  if (!item) return null;
+
+  // 1. Check for file attachment (>4KB payloads)
+  if (item.attachment && item.attachment.url) {
+    try {
+      const res = await fetch(item.attachment.url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (Array.isArray(data.notes) || Array.isArray(data.notebooks) || data.type === 'REQUEST_SYNC')) {
+          return data as SyncPayload;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch sync attachment payload', e);
+    }
+  }
+
+  // 2. Check for inline JSON message (≤4KB payloads)
+  if (item.message && typeof item.message === 'string') {
+    const trimmed = item.message.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const data = JSON.parse(trimmed);
+        if (data && (Array.isArray(data.notes) || Array.isArray(data.notebooks) || data.type === 'REQUEST_SYNC')) {
+          return data as SyncPayload;
+        }
+      } catch {}
+    }
+  }
+
+  return null;
+}
+
+/**
  * Upload notes & notebooks to the zero-config instant relay.
  * No account, database, or cloud setup required by the user.
  */
 export async function pushSyncData(
   roomCode: string,
   notes: Note[],
-  notebooks: Notebook[]
+  notebooks: Notebook[],
+  type: 'SYNC_FULL' | 'SYNC_UPDATE' | 'REQUEST_SYNC' = 'SYNC_UPDATE'
 ): Promise<boolean> {
   if (!roomCode) return false;
 
@@ -67,7 +106,7 @@ export async function pushSyncData(
     notebooks,
     timestamp: Date.now(),
     senderId: CLIENT_ID,
-    type: 'SYNC_UPDATE',
+    type,
   };
 
   try {
@@ -76,6 +115,7 @@ export async function pushSyncData(
       headers: {
         'Content-Type': 'application/json',
         Title: 'LittleNotes Sync',
+        Filename: 'littlenotes.json',
       },
       body: JSON.stringify(payload),
     });
@@ -83,6 +123,35 @@ export async function pushSyncData(
     return res.ok;
   } catch (err) {
     console.warn('Failed to push sync data via relay', err);
+    return false;
+  }
+}
+
+/**
+ * Send a lightweight request for the host device to transmit its full dataset.
+ */
+export async function requestSyncSnapshot(roomCode: string): Promise<boolean> {
+  if (!roomCode) return false;
+
+  const topic = getChannelTopic(roomCode);
+  const payload: SyncPayload = {
+    timestamp: Date.now(),
+    senderId: CLIENT_ID,
+    type: 'REQUEST_SYNC',
+  };
+
+  try {
+    const res = await fetch(`${NTFY_RELAY_URL}/${topic}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Title: 'LittleNotes Sync Handshake',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return res.ok;
+  } catch {
     return false;
   }
 }
@@ -103,15 +172,13 @@ export async function pullSyncData(roomCode: string): Promise<SyncPayload | null
     if (!text || !text.trim()) return null;
 
     const lines = text.trim().split('\n');
-    // Read the newest valid message
+    // Check newest messages first
     for (let i = lines.length - 1; i >= 0; i--) {
       try {
         const item = JSON.parse(lines[i]);
-        if (item.message) {
-          const payload = JSON.parse(item.message) as SyncPayload;
-          if (Array.isArray(payload.notes)) {
-            return payload;
-          }
+        const payload = await extractPayload(item);
+        if (payload && (Array.isArray(payload.notes) || Array.isArray(payload.notebooks))) {
+          return payload;
         }
       } catch {}
     }
@@ -125,7 +192,7 @@ export async function pullSyncData(roomCode: string): Promise<SyncPayload | null
 
 /**
  * Real-time instant stream listener using Server-Sent Events (SSE).
- * Instantly notifies the device when notes are added or updated on the other device.
+ * Instantly notifies the device when notes or notebooks are added or updated on the other device.
  */
 export function subscribeToSyncRoom(
   roomCode: string,
@@ -145,12 +212,12 @@ export function subscribeToSyncRoom(
     try {
       eventSource = new EventSource(`${NTFY_RELAY_URL}/${topic}/sse`);
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.event === 'message' && data.message) {
-            const payload = JSON.parse(data.message) as SyncPayload;
-            if (payload && payload.senderId !== CLIENT_ID && Array.isArray(payload.notes)) {
+          if (data.event === 'message') {
+            const payload = await extractPayload(data);
+            if (payload && payload.senderId !== CLIENT_ID) {
               onRemoteUpdate(payload);
             }
           }

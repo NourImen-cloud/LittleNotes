@@ -159,7 +159,7 @@ export const InstallModal: React.FC<Props> = ({
                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                   <div className="p-2 bg-white rounded-xl shadow-xs border border-purple-100 shrink-0">
                     <QRCodeSVG
-                      value="https://titanium-trust-worldcat-exams.trycloudflare.com"
+                      value="https://architecture-nec-facilities-adaptor.trycloudflare.com"
                       size={100}
                       level="M"
                     />
@@ -173,12 +173,12 @@ export const InstallModal: React.FC<Props> = ({
                       Point your iPhone's camera at this QR code to open the app directly in Safari, then follow the 3 steps below to add it to your home screen!
                     </p>
                     <a
-                      href="https://titanium-trust-worldcat-exams.trycloudflare.com"
+                      href="https://architecture-nec-facilities-adaptor.trycloudflare.com"
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block text-[11px] text-purple-700 underline font-mono break-all"
                     >
-                      https://titanium-trust-worldcat-exams.trycloudflare.com
+                      https://architecture-nec-facilities-adaptor.trycloudflare.com
                     </a>
                   </div>
                 </div>
@@ -254,7 +254,7 @@ export const InstallModal: React.FC<Props> = ({
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                   <div className="p-2 bg-white rounded-xl shadow-xs border border-emerald-100 shrink-0">
                     <QRCodeSVG
-                      value="https://titanium-trust-worldcat-exams.trycloudflare.com"
+                      value="https://architecture-nec-facilities-adaptor.trycloudflare.com"
                       size={100}
                       level="M"
                     />
@@ -268,12 +268,12 @@ export const InstallModal: React.FC<Props> = ({
                       Scan with your phone's camera to open the app on Android and install it in one tap!
                     </p>
                     <a
-                      href="https://titanium-trust-worldcat-exams.trycloudflare.com"
+                      href="https://architecture-nec-facilities-adaptor.trycloudflare.com"
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block text-[11px] text-emerald-700 underline font-mono break-all"
                     >
-                      https://titanium-trust-worldcat-exams.trycloudflare.com
+                      https://architecture-nec-facilities-adaptor.trycloudflare.com
                     </a>
                   </div>
                 </div>

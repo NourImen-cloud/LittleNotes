@@ -80,13 +80,15 @@ export const Header: React.FC<Props> = ({
             >
               {isWidgetMode ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
             </button>
-            <button
-              onClick={onOpenInstall}
-              className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200"
-              title="Install App (iPhone / Android / Desktop)"
-            >
-              <Download size={16} />
-            </button>
+            {!isInstalled && (
+              <button
+                onClick={onOpenInstall}
+                className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200"
+                title="Install App (iPhone / Android / Desktop)"
+              >
+                <Download size={16} />
+              </button>
+            )}
             <button
               onClick={onOpenSync}
               className={`p-2 rounded-xl border transition ${
@@ -182,15 +184,17 @@ export const Header: React.FC<Props> = ({
             <span className="hidden sm:inline">{isPaired ? 'Device Synced' : 'Pair Phone'}</span>
           </button>
 
-          {/* Install App Button */}
-          <button
-            onClick={onOpenInstall}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#E4D9C7] bg-white/90 hover:bg-white text-stone-700 transition shadow-2xs cursor-pointer"
-            title="Install LittleNotes App (iPhone / Android / Desktop)"
-          >
-            <Download size={13} className="text-amber-700" />
-            <span className="hidden sm:inline">{isInstalled ? 'App Installed' : 'Install App'}</span>
-          </button>
+          {/* Install App Button (hidden once installed) */}
+          {!isInstalled && (
+            <button
+              onClick={onOpenInstall}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#E4D9C7] bg-white/90 hover:bg-white text-stone-700 transition shadow-2xs cursor-pointer"
+              title="Install LittleNotes App (iPhone / Android / Desktop)"
+            >
+              <Download size={13} className="text-amber-700" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
 
           {/* Add Sticky Note button */}
           <button
