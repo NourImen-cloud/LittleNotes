@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Note, Notebook } from '../types';
 
 import { NOTE_COLORS, STAGE_META } from '../utils/theme';
 import { StickerBadge } from './Stickers';
+import { PhotoLightboxModal } from './PhotoLightboxModal';
 import {
   Pin,
   CheckSquare,
   Edit3,
   Trash2,
   BookOpen,
+  Image as ImageIcon,
+  ZoomIn,
 } from 'lucide-react';
 
 interface Props {
@@ -28,6 +31,7 @@ export const NoteCard: React.FC<Props> = ({
   onEditNote,
   onStartRevision,
 }) => {
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   const colorScheme = NOTE_COLORS[note.color] || NOTE_COLORS.paper;
   const notebook = notebooks.find((nb) => nb.id === note.notebookId);
   const stageMeta = STAGE_META[note.stage];
@@ -102,13 +106,82 @@ export const NoteCard: React.FC<Props> = ({
       <div className="flex-1 min-h-0 my-2 flex flex-col justify-start overflow-hidden">
         {/* Title */}
         {note.title && (
-          <h3 className="font-serif text-lg font-semibold text-[#37343C] mb-1.5 leading-snug line-clamp-1 shrink-0">
+          <h3 className="font-serif text-lg font-semibold text-[#37343C] mb-1 leading-snug line-clamp-1 shrink-0">
             {note.title}
           </h3>
         )}
 
-        {/* Text Content */}
-        {note.content ? (
+        {/* Photos Preview */}
+        {note.photos && note.photos.length > 0 ? (
+          <div className="flex-1 min-h-0 flex flex-col justify-start overflow-hidden">
+            {note.content && (
+              <p className="text-stone-700 text-xs leading-relaxed line-clamp-1 mb-1.5 font-normal">
+                {note.content}
+              </p>
+            )}
+            <div className="group/photo flex-1 min-h-[70px] max-h-[115px] rounded-xl overflow-hidden border border-stone-200/80 bg-stone-100/80 relative">
+              {note.photos.length === 1 ? (
+                <div
+                  className="w-full h-full relative"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxPhoto(note.photos![0]);
+                  }}
+                >
+                  <img
+                    src={note.photos[0]}
+                    alt="Note photo"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    <ZoomIn size={16} />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1 w-full h-full p-1 bg-stone-100">
+                  <div
+                    className="relative w-full h-full rounded-lg overflow-hidden"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxPhoto(note.photos![0]);
+                    }}
+                  >
+                    <img
+                      src={note.photos[0]}
+                      alt="Note photo 1"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                      <ZoomIn size={14} />
+                    </div>
+                  </div>
+                  <div
+                    className="relative w-full h-full rounded-lg overflow-hidden"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxPhoto(note.photos![1]);
+                    }}
+                  >
+                    <img
+                      src={note.photos[1]}
+                      alt="Note photo 2"
+                      className="w-full h-full object-cover"
+                    />
+                    {note.photos.length > 2 ? (
+                      <div className="absolute inset-0 bg-black/50 hover:bg-black/40 flex items-center justify-center text-white font-semibold text-xs transition">
+                        +{note.photos.length - 2}
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <ZoomIn size={14} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : note.content ? (
           <p
             className={`text-stone-700 text-sm leading-relaxed whitespace-pre-wrap font-normal ${
               note.title ? 'line-clamp-4' : 'line-clamp-5'
@@ -149,14 +222,25 @@ export const NoteCard: React.FC<Props> = ({
 
       {/* Footer Info & Actions */}
       <div className="shrink-0 pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-stone-400">
-        <span>
-          {new Date(note.updatedAt).toLocaleDateString(undefined, {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span>
+            {new Date(note.updatedAt).toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+          {note.photos && note.photos.length > 0 && (
+            <span
+              className="flex items-center gap-0.5 text-stone-500 font-medium text-[10px] bg-stone-200/60 px-1.5 py-0.5 rounded-md"
+              title={`${note.photos.length} photo(s) attached`}
+            >
+              <ImageIcon size={10} />
+              <span>{note.photos.length}</span>
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           {note.revisionQuestion && onStartRevision && (
@@ -192,6 +276,14 @@ export const NoteCard: React.FC<Props> = ({
           </button>
         </div>
       </div>
+
+      {/* Lightbox for instant full-size photo preview from board */}
+      <PhotoLightboxModal
+        isOpen={Boolean(lightboxPhoto)}
+        photoUrl={lightboxPhoto}
+        title={note.title || 'Note Photo'}
+        onClose={() => setLightboxPhoto(null)}
+      />
     </div>
   );
 };

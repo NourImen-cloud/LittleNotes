@@ -346,6 +346,8 @@ export const App: React.FC = () => {
       styleType: noteData.styleType || 'classic',
       stage: 'catch',
       tags: noteData.tags || [],
+      photos: noteData.photos || undefined,
+      drawingDataUrl: noteData.drawingDataUrl || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

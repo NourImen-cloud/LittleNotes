@@ -42,6 +42,7 @@ export interface Note {
   revisionQuestion?: string;
   revisionAnswer?: string;
   drawingDataUrl?: string; // Handwritten sketch / doodle
+  photos?: string[]; // Attached photos / images (data URLs or remote URLs)
   audioNote?: AudioNote; // Voice quick capture
 }
 

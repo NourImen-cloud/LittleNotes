@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { Note } from '../types';
-import { X, Sparkles, Eye, ArrowRight, ArrowLeft, CheckCircle2, RotateCw } from 'lucide-react';
+import { X, Sparkles, Eye, ArrowRight, ArrowLeft, CheckCircle2, RotateCw, ZoomIn } from 'lucide-react';
 import { StickerBadge } from './Stickers';
+import { PhotoLightboxModal } from './PhotoLightboxModal';
 
 interface Props {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const RevisionModalContent: React.FC<{
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isRevealed, setIsRevealed] = useState(false);
   const [masteredIds, setMasteredIds] = useState<Set<string>>(new Set());
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
 
   const currentNote = studyNotes[currentIndex];
@@ -139,6 +141,51 @@ const RevisionModalContent: React.FC<{
                     {currentNote.revisionAnswer || currentNote.content}
                   </p>
 
+                  {/* Attached photos in revision card */}
+                  {currentNote.photos && currentNote.photos.length > 0 && (
+                    <div className="pt-2">
+                      <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold block mb-1.5">
+                        Attached Photos ({currentNote.photos.length})
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {currentNote.photos.map((photo, i) => (
+                          <div
+                            key={i}
+                            onClick={() => setLightboxPhoto(photo)}
+                            className="group relative w-20 h-20 rounded-xl overflow-hidden border border-stone-200 cursor-pointer shadow-2xs hover:shadow-md transition hover:scale-105"
+                          >
+                            <img
+                              src={photo}
+                              alt={`Note photo ${i + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
+                              <ZoomIn size={14} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentNote.drawingDataUrl && (
+                    <div className="pt-2">
+                      <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold block mb-1.5">
+                        Attached Sketch
+                      </span>
+                      <div
+                        onClick={() => setLightboxPhoto(currentNote.drawingDataUrl!)}
+                        className="w-24 h-20 rounded-xl overflow-hidden border border-stone-200 cursor-pointer p-1 bg-stone-50 hover:bg-stone-100 transition"
+                      >
+                        <img
+                          src={currentNote.drawingDataUrl}
+                          alt="Sketch"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {currentNote.codeBlock && (
                     <div className="rounded-xl overflow-hidden bg-[#242229] p-3 text-emerald-300 font-mono text-xs max-h-36 overflow-y-auto">
                       <code>{currentNote.codeBlock.code}</code>
@@ -186,6 +233,13 @@ const RevisionModalContent: React.FC<{
           </button>
         </div>
       </div>
+
+      <PhotoLightboxModal
+        isOpen={Boolean(lightboxPhoto)}
+        photoUrl={lightboxPhoto}
+        title={currentNote.title || 'Revision Image'}
+        onClose={() => setLightboxPhoto(null)}
+      />
     </div>
   );
 };

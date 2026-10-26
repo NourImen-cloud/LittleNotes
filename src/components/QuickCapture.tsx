@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Note } from '../types';
-import { Send, CheckCircle2, Mic, MicOff, PenTool } from 'lucide-react';
+import { Send, CheckCircle2, Mic, MicOff, PenTool, Image as ImageIcon, X, Loader2 } from 'lucide-react';
+import { processImageFiles, getImagesFromClipboard } from '../utils/imageUtils';
 
 interface Props {
   onCapture: (noteData: Partial<Note>) => void;
@@ -14,11 +15,15 @@ export const QuickCapture: React.FC<Props> = ({
   const [content, setContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [title, setTitle] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [recentlySaved, setRecentlySaved] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechLang, setSpeechLang] = useState('en-US');
   const [speechError, setSpeechError] = useState<string | null>(null);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const shouldListenRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -145,9 +150,58 @@ export const QuickCapture: React.FC<Props> = ({
     }
   };
 
+  const handlePhotoFiles = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploadingPhoto(true);
+    setIsExpanded(true);
+    try {
+      const newPhotos = await processImageFiles(files);
+      if (newPhotos.length > 0) {
+        setPhotos((prev) => [...prev, ...newPhotos]);
+      }
+    } catch (err) {
+      console.error('Failed to attach photos', err);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const pastedImages = await getImagesFromClipboard(e);
+    if (pastedImages.length > 0) {
+      e.preventDefault();
+      setIsExpanded(true);
+      setPhotos((prev) => [...prev, ...pastedImages]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handlePhotoFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!content.trim() && !title.trim()) return;
+    if (!content.trim() && !title.trim() && photos.length === 0) return;
 
     if (isListening || shouldListenRef.current) {
       stopListening();
@@ -156,6 +210,7 @@ export const QuickCapture: React.FC<Props> = ({
     onCapture({
       title: title.trim(),
       content: content.trim(),
+      photos: photos.length > 0 ? photos : undefined,
       notebookId: 'inbox',
       stage: 'catch',
       color: 'paper',
@@ -165,6 +220,7 @@ export const QuickCapture: React.FC<Props> = ({
 
     setTitle('');
     setContent('');
+    setPhotos([]);
     setIsExpanded(false);
     setRecentlySaved(true);
     setTimeout(() => setRecentlySaved(false), 2500);
@@ -182,17 +238,52 @@ export const QuickCapture: React.FC<Props> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto my-6">
-      <div className="bg-white/90 backdrop-blur-xs rounded-3xl p-4 sm:p-5 shadow-sm border border-[#E4D9C7] hover:border-stone-400/70 transition-all duration-200">
+      {/* Hidden file input for uploading photos */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          handlePhotoFiles(e.target.files);
+          // reset input so the same file can be selected again if needed
+          e.target.value = '';
+        }}
+      />
+
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onPaste={handlePaste}
+        className={`bg-white/90 backdrop-blur-xs rounded-3xl p-4 sm:p-5 shadow-sm border transition-all duration-200 ${
+          isDraggingOver
+            ? 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-400/40'
+            : 'border-[#E4D9C7] hover:border-stone-400/70'
+        }`}
+      >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-xs font-serif italic text-stone-500">
-              A little space to think.
+              {isDraggingOver ? 'Drop photos here to attach' : 'A little space to think.'}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[#FAF6EF] hover:bg-stone-200/60 text-stone-600 border border-stone-200 transition font-medium cursor-pointer"
+              title="Add photos or screenshots to note"
+            >
+              <ImageIcon size={12} className="text-amber-600" />
+              <span>Photo</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenDoodle}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[#FAF6EF] hover:bg-stone-200/60 text-stone-600 border border-stone-200 transition font-medium cursor-pointer"
               title="Draw diagram or write with stylus on grid paper"
@@ -200,7 +291,6 @@ export const QuickCapture: React.FC<Props> = ({
               <PenTool size={12} className="text-stone-700" />
               <span>Doodle</span>
             </button>
-
           </div>
         </div>
 
@@ -226,10 +316,53 @@ export const QuickCapture: React.FC<Props> = ({
                 baseContentRef.current = e.target.value;
               }}
               onKeyDown={handleKeyDown}
-              placeholder="What would you like to remember today? "
+              placeholder="What would you like to remember today? (Tip: drag or paste photos anytime)"
               className="w-full resize-none text-sm text-stone-800 placeholder:text-stone-400 bg-transparent px-1 py-1 focus:outline-hidden leading-relaxed"
             />
           </div>
+
+          {/* Photo attachments preview */}
+          {(photos.length > 0 || isUploadingPhoto) && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 pb-2">
+              {photos.map((photoUrl, idx) => (
+                <div
+                  key={idx}
+                  className="group relative w-16 h-16 rounded-xl overflow-hidden border border-stone-300/80 bg-stone-100 shadow-xs"
+                >
+                  <img
+                    src={photoUrl}
+                    alt={`Attached photo ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(idx)}
+                    className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 hover:bg-rose-600 text-white transition opacity-90 group-hover:opacity-100 cursor-pointer"
+                    title="Remove photo"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+
+              {isUploadingPhoto && (
+                <div className="w-16 h-16 rounded-xl border border-dashed border-stone-300 bg-stone-50 flex flex-col items-center justify-center text-stone-400 animate-pulse">
+                  <Loader2 size={16} className="animate-spin text-stone-600" />
+                  <span className="text-[9px] mt-1">Adding...</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-16 h-16 rounded-xl border border-dashed border-stone-300 hover:border-stone-500 bg-stone-50/50 hover:bg-stone-100/60 flex flex-col items-center justify-center text-stone-400 hover:text-stone-700 transition cursor-pointer"
+                title="Add another photo"
+              >
+                <ImageIcon size={15} />
+                <span className="text-[9px] mt-0.5">+ Add</span>
+              </button>
+            </div>
+          )}
 
           {speechError && (
             <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-1.5 flex items-center justify-between">
@@ -264,6 +397,16 @@ export const QuickCapture: React.FC<Props> = ({
             </div>
 
             <div className="flex items-center gap-1.5">
+              {/* Photo Button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-full border border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100 transition cursor-pointer"
+                title="Attach photo or snapshot"
+              >
+                <ImageIcon size={13} />
+              </button>
+
               {/* Language Selector */}
               <select
                 value={speechLang}
@@ -303,7 +446,7 @@ export const QuickCapture: React.FC<Props> = ({
 
               <button
                 type="submit"
-                disabled={!content.trim() && !title.trim()}
+                disabled={!content.trim() && !title.trim() && photos.length === 0}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#37343C] text-white hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs text-xs font-medium cursor-pointer"
               >
                 <span>Catch it</span>

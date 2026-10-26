@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import type { Note, Notebook, NoteColor, NoteStyle, KawaiiSticker, ThoughtStage, ChecklistItem } from '../types';
 import { STAGE_META } from '../utils/theme';
 import { StickerBadge } from './Stickers';
+import { PhotoLightboxModal } from './PhotoLightboxModal';
+import { processImageFiles, getImagesFromClipboard } from '../utils/imageUtils';
 import {
   X,
   Plus,
@@ -10,6 +12,10 @@ import {
   ListTodo,
   Sparkles,
   CheckCircle,
+  Image as ImageIcon,
+  ZoomIn,
+  UploadCloud,
+  Loader2,
 } from 'lucide-react';
 
 interface Props {
@@ -62,6 +68,40 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
   // Sketch doodle state
   const [drawingDataUrl, setDrawingDataUrl] = useState<string | undefined>(note.drawingDataUrl);
 
+  // Photos state
+  const [photos, setPhotos] = useState<string[]>(note.photos || []);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
+  const [activeLightboxUrl, setActiveLightboxUrl] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoFiles = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploadingPhoto(true);
+    try {
+      const newPhotos = await processImageFiles(files);
+      if (newPhotos.length > 0) {
+        setPhotos((prev) => [...prev, ...newPhotos]);
+      }
+    } catch (err) {
+      console.error('Failed to attach photos', err);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handlePastePhoto = async (e: React.ClipboardEvent) => {
+    const pasted = await getImagesFromClipboard(e);
+    if (pasted.length > 0) {
+      e.preventDefault();
+      setPhotos((prev) => [...prev, ...pasted]);
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleAutoGenerateFlashcard = () => {
     setHasRevision(true);
     let question = '';
@@ -112,7 +152,7 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
 
     // If student enriched the note, automatically advance stage from 'catch' to 'shape' or 'reuse'
     let finalStage = stage;
-    if (stage === 'catch' && (notebookId !== 'inbox' || hasCode || checklist.length > 0 || hasRevision)) {
+    if (stage === 'catch' && (notebookId !== 'inbox' || hasCode || checklist.length > 0 || hasRevision || photos.length > 0)) {
       finalStage = 'shape';
     }
     if (hasRevision && revisionQuestion.trim()) {
@@ -129,6 +169,7 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
       kawaiiSticker,
       stage: finalStage,
       tags: parsedTags,
+      photos: photos.length > 0 ? photos : undefined,
       checklist: checklist.length > 0 ? checklist : undefined,
       codeBlock: hasCode && codeContent.trim() ? { language: codeLang, code: codeContent } : undefined,
       revisionQuestion: hasRevision && revisionQuestion.trim() ? revisionQuestion.trim() : undefined,
@@ -277,9 +318,181 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
               rows={5}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your explanation, lecture takeaways, or thoughts..."
+              onPaste={handlePastePhoto}
+              placeholder="Write your explanation, lecture takeaways, or thoughts... (Tip: paste screenshots with Ctrl+V)"
               className="w-full bg-white border border-[#E3D8C6] rounded-xl p-3.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-hidden focus:border-stone-600 focus:ring-1 focus:ring-stone-600 leading-relaxed font-sans"
             />
+          </div>
+
+          {/* Photos & Visual Attachments Section */}
+          <div
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes('Files')) {
+                e.preventDefault();
+                setIsDraggingPhoto(true);
+              }
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setIsDraggingPhoto(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingPhoto(false);
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handlePhotoFiles(e.dataTransfer.files);
+              }
+            }}
+            className={`p-4 rounded-2xl bg-white border transition-all duration-200 space-y-3 ${
+              isDraggingPhoto
+                ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-400/40'
+                : 'border-[#E8DFC9]'
+            }`}
+          >
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                handlePhotoFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-stone-600 flex items-center gap-1.5">
+                  <ImageIcon size={14} className="text-amber-600" />
+                  <span>Photos & Images</span>
+                </span>
+                {photos.length > 0 && (
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-medium px-2 py-0.5 rounded-full">
+                    {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                className="text-xs px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium flex items-center gap-1 transition cursor-pointer"
+              >
+                {isUploadingPhoto ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin text-stone-600" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={12} />
+                    <span>Add Photo</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Photos Grid */}
+            {photos.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {photos.map((photoUrl, idx) => (
+                  <div
+                    key={idx}
+                    className="group relative aspect-4/3 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shadow-xs transition hover:shadow-md"
+                  >
+                    <img
+                      src={photoUrl}
+                      alt={`Note photo ${idx + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+
+                    {/* Overlay controls */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveLightboxUrl(photoUrl)}
+                        className="p-1.5 rounded-lg bg-white/90 text-stone-800 hover:bg-white hover:scale-110 transition shadow-xs cursor-pointer"
+                        title="Enlarge photo"
+                      >
+                        <ZoomIn size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(idx)}
+                        className="p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-600 hover:scale-110 transition shadow-xs cursor-pointer"
+                        title="Delete photo"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    <span className="absolute bottom-1 left-1.5 text-[9px] bg-black/60 text-white px-1.5 py-0.5 rounded-md font-mono">
+                      #{idx + 1}
+                    </span>
+                  </div>
+                ))}
+
+                {/* Add more button tile */}
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="aspect-4/3 rounded-xl border-2 border-dashed border-stone-300 hover:border-amber-500 bg-stone-50/50 hover:bg-amber-50/30 flex flex-col items-center justify-center text-stone-400 hover:text-amber-700 transition cursor-pointer"
+                >
+                  <Plus size={18} />
+                  <span className="text-[11px] font-medium mt-1">Add more</span>
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => photoInputRef.current?.click()}
+                className="border-2 border-dashed border-stone-300 hover:border-amber-500 rounded-xl p-5 text-center cursor-pointer transition hover:bg-amber-50/30 flex flex-col items-center justify-center gap-1.5"
+              >
+                <div className="p-2.5 rounded-full bg-amber-50 text-amber-700">
+                  <UploadCloud size={20} />
+                </div>
+                <div className="text-xs font-medium text-stone-700">
+                  Click to upload photos or drag & drop images here
+                </div>
+                <div className="text-[11px] text-stone-400">
+                  Paste screenshots with <kbd className="px-1 py-0.5 rounded-sm bg-stone-100 font-mono text-[10px]">Ctrl+V</kbd> • Diagrams, whiteboard photos, slides
+                </div>
+              </div>
+            )}
+
+            {/* Handwritten sketch if attached */}
+            {drawingDataUrl && (
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between mt-2">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={drawingDataUrl}
+                    alt="Attached sketch"
+                    className="w-16 h-12 object-contain rounded-md bg-white border border-stone-200"
+                  />
+                  <div>
+                    <span className="text-xs text-stone-800 font-medium block">Handwritten Sketch / Doodle</span>
+                    <span className="text-[10px] text-stone-400">Drawn with stylus or pen tool</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveLightboxUrl(drawingDataUrl)}
+                    className="text-xs text-stone-600 hover:text-stone-900 p-1 font-medium cursor-pointer"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrawingDataUrl(undefined)}
+                    className="text-xs text-rose-600 hover:text-rose-800 p-1 font-medium cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Interactive Checklist section */}
@@ -416,29 +629,6 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
               </div>
             </div>
 
-
-            {/* Drawing / Sketch section if present */}
-            {drawingDataUrl && (
-              <div className="p-3 bg-white/80 rounded-xl border border-purple-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={drawingDataUrl}
-                    alt="Attached sketch"
-                    className="w-16 h-12 object-contain rounded-md bg-stone-50 border border-stone-200"
-                  />
-                  <span className="text-xs text-stone-700 font-medium">Attached Handwritten Sketch</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setDrawingDataUrl(undefined)}
-                  className="text-xs text-rose-600 hover:text-rose-800 p-1 font-medium cursor-pointer"
-                >
-                  Remove Sketch
-                </button>
-              </div>
-            )}
-
-
             {hasRevision && (
               <div className="space-y-3 pt-2">
                 <div>
@@ -525,6 +715,14 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Photo Lightbox */}
+      <PhotoLightboxModal
+        isOpen={Boolean(activeLightboxUrl)}
+        photoUrl={activeLightboxUrl}
+        title={title || 'Note Attachment'}
+        onClose={() => setActiveLightboxUrl(null)}
+      />
     </div>
   );
 };
