@@ -12,6 +12,7 @@ import { StudyTimerModal } from './components/StudyTimerModal';
 import { DoodleCanvasModal } from './components/DoodleCanvasModal';
 import { SyncModal } from './components/SyncModal';
 import { InstallModal } from './components/InstallModal';
+import { QRScannerModal } from './components/QRScannerModal';
 import {
   getStoredRoomCode,
   saveStoredRoomCode,
@@ -46,7 +47,9 @@ export const App: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_NOTES_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_NOTES;
+      if (!saved) return INITIAL_NOTES;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : INITIAL_NOTES;
     } catch {
       return INITIAL_NOTES;
     }
@@ -55,7 +58,9 @@ export const App: React.FC = () => {
   const [notebooks, setNotebooks] = useState<Notebook[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_NOTEBOOKS_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_NOTEBOOKS;
+      if (!saved) return INITIAL_NOTEBOOKS;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : INITIAL_NOTEBOOKS;
     } catch {
       return INITIAL_NOTEBOOKS;
     }
@@ -91,6 +96,7 @@ export const App: React.FC = () => {
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [isDoodleModalOpen, setIsDoodleModalOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(() => {
@@ -195,6 +201,16 @@ export const App: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const isRemoteUpdating = useRef(false);
 
+  // Keep live refs for sync data requests
+  const notesRef = useRef(notes);
+  const notebooksRef = useRef(notebooks);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+  useEffect(() => {
+    notebooksRef.current = notebooks;
+  }, [notebooks]);
+
   // Auto-join if URL contains ?sync=LN-XXXX
   useEffect(() => {
     try {
@@ -212,7 +228,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Room Subscription & Initial Pull
+  // Room Subscription & Real-time Live Relay
   useEffect(() => {
     if (!syncRoomCode) {
       setSyncStatus('idle');
@@ -221,41 +237,44 @@ export const App: React.FC = () => {
 
     setSyncStatus('syncing');
 
-    // 1. Initial Pull
+    // 1. Initial Pull: grab latest notes from the room immediately
     pullSyncData(syncRoomCode).then((remote) => {
-      if (remote) {
+      if (remote && Array.isArray(remote.notes) && remote.notes.length > 0) {
         isRemoteUpdating.current = true;
-        if (Array.isArray(remote.notes) && remote.notes.length > 0) {
-          setNotes(remote.notes);
-        }
+        setNotes(remote.notes);
         if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
           setNotebooks(remote.notebooks);
         }
         setTimeout(() => {
           isRemoteUpdating.current = false;
-        }, 300);
+        }, 400);
         setSyncStatus('connected');
       } else {
-        // Room not yet created in cloud, seed with current local state
-        pushSyncData(syncRoomCode, notes, notebooks).then(() => {
+        // If room is fresh, publish our current notes so the other device receives them
+        const isFromUrl = new URLSearchParams(window.location.search).has('sync');
+        if (!isFromUrl) {
+          pushSyncData(syncRoomCode, notesRef.current, notebooksRef.current).then((ok) => {
+            setSyncStatus(ok ? 'connected' : 'idle');
+          });
+        } else {
           setSyncStatus('connected');
-        });
+        }
       }
     });
 
-    // 2. Real-time Subscription
+    // 2. Real-time stream: listens for updates published by the other device
     const unsubscribe = subscribeToSyncRoom(syncRoomCode, (remote) => {
-      isRemoteUpdating.current = true;
       if (Array.isArray(remote.notes)) {
+        isRemoteUpdating.current = true;
         setNotes(remote.notes);
+        if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
+          setNotebooks(remote.notebooks);
+        }
+        setTimeout(() => {
+          isRemoteUpdating.current = false;
+        }, 400);
+        setSyncStatus('connected');
       }
-      if (Array.isArray(remote.notebooks)) {
-        setNotebooks(remote.notebooks);
-      }
-      setTimeout(() => {
-        isRemoteUpdating.current = false;
-      }, 300);
-      setSyncStatus('connected');
     });
 
     return () => {
@@ -272,7 +291,7 @@ export const App: React.FC = () => {
       pushSyncData(syncRoomCode, notes, notebooks).then((ok) => {
         setSyncStatus(ok ? 'connected' : 'error');
       });
-    }, 1200);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [notes, notebooks, syncRoomCode]);
@@ -285,7 +304,7 @@ export const App: React.FC = () => {
   const handleTriggerSync = () => {
     if (syncRoomCode) {
       setSyncStatus('syncing');
-      pushSyncData(syncRoomCode, notes, notebooks).then((ok) => {
+      pushSyncData(syncRoomCode, notesRef.current, notebooksRef.current).then((ok) => {
         setSyncStatus(ok ? 'connected' : 'error');
       });
     }
@@ -614,6 +633,7 @@ export const App: React.FC = () => {
         }}
         onOpenTimer={() => setIsTimerModalOpen(true)}
         onOpenSync={() => setIsSyncModalOpen(true)}
+        onOpenScanner={() => setIsScannerOpen(true)}
         isPaired={Boolean(syncRoomCode)}
         isWidgetMode={isWidgetMode}
         onToggleWidgetMode={handleToggleWidgetMode}
@@ -840,8 +860,30 @@ export const App: React.FC = () => {
         onClose={() => setIsSyncModalOpen(false)}
         syncStatus={syncStatus}
         currentRoomCode={syncRoomCode}
+        notes={notes}
+        notebooks={notebooks}
         onSetRoomCode={handleSetRoomCode}
         onTriggerSync={handleTriggerSync}
+        onExportNotes={handleExportNotes}
+        onImportNotes={handleImportNotes}
+        onOpenScanner={() => setIsScannerOpen(true)}
+      />
+
+      {/* Built-in Camera QR Scanner */}
+      <QRScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onImportData={(data) => {
+          if (Array.isArray(data.notes) && data.notes.length > 0) {
+            setNotes(data.notes);
+          }
+          if (Array.isArray(data.notebooks) && data.notebooks.length > 0) {
+            setNotebooks(data.notebooks);
+          }
+        }}
+        onPairCode={(code) => {
+          handleSetRoomCode(code);
+        }}
       />
 
       {/* PWA App Installation Guidance Modal */}

@@ -8,6 +8,7 @@ import {
   Minimize2,
   Maximize2,
   Download,
+  Camera,
 } from 'lucide-react';
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
   onOpenRevision: () => void;
   onOpenTimer: () => void;
   onOpenSync: () => void;
+  onOpenScanner?: () => void;
   isPaired: boolean;
   isWidgetMode: boolean;
   onToggleWidgetMode: () => void;
@@ -39,6 +41,7 @@ export const Header: React.FC<Props> = ({
   onOpenRevision,
   onOpenTimer,
   onOpenSync,
+  onOpenScanner,
   isPaired,
   isWidgetMode,
   onToggleWidgetMode,
@@ -77,15 +80,13 @@ export const Header: React.FC<Props> = ({
             >
               {isWidgetMode ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
             </button>
-            {!isInstalled && (
-              <button
-                onClick={onOpenInstall}
-                className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200"
-                title="Install App"
-              >
-                <Download size={16} />
-              </button>
-            )}
+            <button
+              onClick={onOpenInstall}
+              className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200"
+              title="Install App (iPhone / Android / Desktop)"
+            >
+              <Download size={16} />
+            </button>
             <button
               onClick={onOpenSync}
               className={`p-2 rounded-xl border transition ${
@@ -97,6 +98,15 @@ export const Header: React.FC<Props> = ({
             >
               <QrCode size={16} />
             </button>
+            {onOpenScanner && (
+              <button
+                onClick={onOpenScanner}
+                className="p-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-200"
+                title="Scan QR Code with Camera"
+              >
+                <Camera size={16} />
+              </button>
+            )}
             <button
               onClick={onOpenTimer}
               className="p-2 rounded-xl bg-amber-100 text-amber-900"
@@ -173,16 +183,14 @@ export const Header: React.FC<Props> = ({
           </button>
 
           {/* Install App Button */}
-          {!isInstalled && (
-            <button
-              onClick={onOpenInstall}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#E4D9C7] bg-white/90 hover:bg-white text-stone-700 transition shadow-2xs cursor-pointer"
-              title="Install LittleNotes App (Desktop / Phone)"
-            >
-              <Download size={13} className="text-amber-700" />
-              <span className="hidden sm:inline">Install App</span>
-            </button>
-          )}
+          <button
+            onClick={onOpenInstall}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#E4D9C7] bg-white/90 hover:bg-white text-stone-700 transition shadow-2xs cursor-pointer"
+            title="Install LittleNotes App (iPhone / Android / Desktop)"
+          >
+            <Download size={13} className="text-amber-700" />
+            <span className="hidden sm:inline">{isInstalled ? 'App Installed' : 'Install App'}</span>
+          </button>
 
           {/* Add Sticky Note button */}
           <button
