@@ -50,7 +50,7 @@ export const App: React.FC = () => {
       const saved = localStorage.getItem(STORAGE_NOTES_KEY);
       if (!saved) return INITIAL_NOTES;
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : INITIAL_NOTES;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_NOTES;
     } catch {
       return INITIAL_NOTES;
     }
@@ -61,7 +61,7 @@ export const App: React.FC = () => {
       const saved = localStorage.getItem(STORAGE_NOTEBOOKS_KEY);
       if (!saved) return INITIAL_NOTEBOOKS;
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : INITIAL_NOTEBOOKS;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_NOTEBOOKS;
     } catch {
       return INITIAL_NOTEBOOKS;
     }
@@ -117,7 +117,6 @@ export const App: React.FC = () => {
     }
   });
 
-  // Corner Widget Mode
   const [isWidgetMode, setIsWidgetMode] = useState<boolean>(() => {
     try {
       return localStorage.getItem(STORAGE_WIDGET_KEY) === 'true';

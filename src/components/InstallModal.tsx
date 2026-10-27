@@ -54,6 +54,19 @@ export const InstallModal: React.FC<Props> = ({
     return 'desktop';
   });
 
+  const isLocalHostOrPrivateIP =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.startsWith('10.') ||
+      window.location.hostname.startsWith('172.'));
+
+  const appShareUrl =
+    typeof window !== 'undefined' && !isLocalHostOrPrivateIP
+      ? window.location.origin
+      : 'https://little-notes-rho.vercel.app';
+
   if (!isOpen) return null;
 
   return (
@@ -159,7 +172,7 @@ export const InstallModal: React.FC<Props> = ({
                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                   <div className="p-2 bg-white rounded-xl shadow-xs border border-purple-100 shrink-0">
                     <QRCodeSVG
-                      value="https://architecture-nec-facilities-adaptor.trycloudflare.com"
+                      value={appShareUrl}
                       size={100}
                       level="M"
                     />
@@ -173,12 +186,12 @@ export const InstallModal: React.FC<Props> = ({
                       Point your iPhone's camera at this QR code to open the app directly in Safari, then follow the 3 steps below to add it to your home screen!
                     </p>
                     <a
-                      href="https://architecture-nec-facilities-adaptor.trycloudflare.com"
+                      href={appShareUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block text-[11px] text-purple-700 underline font-mono break-all"
                     >
-                      https://architecture-nec-facilities-adaptor.trycloudflare.com
+                      {appShareUrl}
                     </a>
                   </div>
                 </div>
@@ -254,7 +267,7 @@ export const InstallModal: React.FC<Props> = ({
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                   <div className="p-2 bg-white rounded-xl shadow-xs border border-emerald-100 shrink-0">
                     <QRCodeSVG
-                      value="https://architecture-nec-facilities-adaptor.trycloudflare.com"
+                      value={appShareUrl}
                       size={100}
                       level="M"
                     />
@@ -268,12 +281,12 @@ export const InstallModal: React.FC<Props> = ({
                       Scan with your phone's camera to open the app on Android and install it in one tap!
                     </p>
                     <a
-                      href="https://architecture-nec-facilities-adaptor.trycloudflare.com"
+                      href={appShareUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-block text-[11px] text-emerald-700 underline font-mono break-all"
                     >
-                      https://architecture-nec-facilities-adaptor.trycloudflare.com
+                      {appShareUrl}
                     </a>
                   </div>
                 </div>

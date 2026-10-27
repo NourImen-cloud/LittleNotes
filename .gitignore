@@ -25,3 +25,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backup & local recovery data (never push personal notes to GitHub)
+*backup*.json
+*RECOVERED*
+*recovered*
+*.backup
+*.ldb

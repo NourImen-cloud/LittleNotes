@@ -80,13 +80,17 @@ export const SyncModal: React.FC<Props> = ({
       window.location.hostname.startsWith('10.') ||
       window.location.hostname.startsWith('172.'));
 
-  const PUBLIC_TUNNEL_URL = 'https://architecture-nec-facilities-adaptor.trycloudflare.com';
+  // Permanent production URL hosted on Vercel (safe from tunnel timeouts and Google Play warnings)
+  const PERMANENT_APP_URL = 'https://little-notes-rho.vercel.app';
 
-  // Generate pairing URL: use public HTTPS tunnel when on local PC so phones can actually reach it
+  // Generate pairing URL: use permanent production URL when on local PC so phones can always reach it
   const baseDomain =
     customDomain.trim() ||
-    (isLocalHostOrPrivateIP ? PUBLIC_TUNNEL_URL : window.location.origin);
-  const pairingUrl = `${baseDomain}${window.location.pathname}?sync=${encodeURIComponent(activeCode)}`;
+    (isLocalHostOrPrivateIP ? PERMANENT_APP_URL : window.location.origin);
+  const cleanBase = baseDomain.replace(/\/+$/, '');
+  const cleanPath = (typeof window !== 'undefined' && window.location.pathname ? window.location.pathname : '/');
+  const path = cleanPath === '/index.html' ? '/' : cleanPath;
+  const pairingUrl = `${cleanBase}${path.startsWith('/') ? path : '/' + path}?sync=${encodeURIComponent(activeCode)}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(pairingUrl);
