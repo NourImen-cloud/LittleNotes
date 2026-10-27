@@ -28,6 +28,8 @@ dist-ssr
 
 # Backup & local recovery data (never push personal notes to GitHub)
 *backup*.json
+*Backup*.json
+*Protected*.json
 *RECOVERED*
 *recovered*
 *.backup

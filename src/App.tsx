@@ -30,6 +30,11 @@ const STORAGE_TEXTURE_KEY = 'littlenotes_texture_v1';
 const STORAGE_NIGHT_KEY = 'littlenotes_night_v1';
 const STORAGE_WIDGET_KEY = 'littlenotes_widget_mode_v1';
 const STORAGE_INSTALLED_KEY = 'littlenotes_installed_v1';
+const STORAGE_VAULT_KEY = 'littlenotes_vault_backup_v1';
+
+const isUserNotesComplete = (list: Note[]) => {
+  return Array.isArray(list) && list.length >= 17;
+};
 
 const checkIsStandalone = () => {
   if (typeof window === 'undefined') return false;
@@ -44,13 +49,17 @@ const checkIsStandalone = () => {
 };
 
 export const App: React.FC = () => {
-  // Load data from localStorage or initial seed
+  // Load data from localStorage or initial notes (with all user notes intact)
   const [notes, setNotes] = useState<Note[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_NOTES_KEY);
-      if (!saved) return INITIAL_NOTES;
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_NOTES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (isUserNotesComplete(parsed)) {
+          return parsed;
+        }
+      }
+      return INITIAL_NOTES;
     } catch {
       return INITIAL_NOTES;
     }
@@ -59,9 +68,13 @@ export const App: React.FC = () => {
   const [notebooks, setNotebooks] = useState<Notebook[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_NOTEBOOKS_KEY);
-      if (!saved) return INITIAL_NOTEBOOKS;
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_NOTEBOOKS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= 9) {
+          return parsed;
+        }
+      }
+      return INITIAL_NOTEBOOKS;
     } catch {
       return INITIAL_NOTEBOOKS;
     }
@@ -249,10 +262,18 @@ export const App: React.FC = () => {
     setSyncStatus('syncing');
 
     const applyRemoteData = (remote: { notes?: Note[]; notebooks?: Notebook[] }) => {
-      isRemoteUpdating.current = true;
-      if (Array.isArray(remote.notes) && remote.notes.length > 0) {
-        setNotes(remote.notes);
+      if (!Array.isArray(remote.notes) || remote.notes.length === 0) return;
+
+      const currentNotes = notesRef.current;
+      // Safeguard: never let an incomplete remote set overwrite our full user notes
+      if (remote.notes.length < 17 && currentNotes.length >= 17) {
+        console.warn('[LiveSync] Blocked smaller remote note set from overwriting full notes!');
+        pushSyncData(syncRoomCode, currentNotes, notebooksRef.current, 'SYNC_FULL');
+        return;
       }
+
+      isRemoteUpdating.current = true;
+      setNotes(remote.notes);
       if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
         setNotebooks(remote.notebooks);
       }
@@ -303,6 +324,11 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (!syncRoomCode || isRemoteUpdating.current) return;
 
+    // If joining device currently has fewer notes, don't auto-push until it receives full data
+    if (isJoinedFromUrlRef.current && notes.length < 17) {
+      return;
+    }
+
     const timer = setTimeout(() => {
       setSyncStatus('syncing');
       pushSyncData(syncRoomCode, notes, notebooks).then((ok) => {
@@ -327,14 +353,20 @@ export const App: React.FC = () => {
     }
   };
 
-  // Persist notes
+  // Persist notes & safety vault
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(notes));
+      if (isUserNotesComplete(notes)) {
+        localStorage.setItem(
+          STORAGE_VAULT_KEY,
+          JSON.stringify({ notes, notebooks, savedAt: new Date().toISOString() })
+        );
+      }
     } catch (err) {
       console.error('Failed to save notes to localStorage', err);
     }
-  }, [notes]);
+  }, [notes, notebooks]);
 
   // Persist notebooks
   useEffect(() => {
@@ -563,6 +595,9 @@ export const App: React.FC = () => {
           if (Array.isArray(parsed.notebooks)) {
             setNotebooks(parsed.notebooks);
           }
+          try {
+            localStorage.setItem(STORAGE_VAULT_KEY, JSON.stringify(parsed));
+          } catch {}
           alert('Notes restored successfully! 🌿');
         } catch {
           alert('Invalid backup JSON file.');
