@@ -10,13 +10,16 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,
+      },
       includeAssets: ['favicon.svg', 'pwa-icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'LittleNotes — Cozy Study Notebook',
         short_name: 'LittleNotes',
         description: 'The cozy, private sticky note and study companion for students.',
-        theme_color: '#FAF6EF',
-        background_color: '#FAF6EF',
+        theme_color: '#6D28D9',
+        background_color: '#4C1D95',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -78,7 +81,7 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 5188,
+    port: 5189,
     host: true,
     allowedHosts: true,
   },
