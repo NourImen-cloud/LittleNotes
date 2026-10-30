@@ -36,6 +36,7 @@ export const Header: React.FC<Props> = ({
   searchQuery,
   onSearchChange,
   isNightMode,
+  onToggleNightMode: _onToggleNightMode,
   onOpenTemplates,
   onOpenRevision,
   onOpenTimer,
@@ -68,7 +69,7 @@ export const Header: React.FC<Props> = ({
 
           {/* Mobile Action Buttons - Horizontally scrollable without squishing */}
           <div className="flex items-center gap-1.5 md:hidden overflow-x-auto py-1 max-w-[65%] sm:max-w-none scrollbar-none">
-            {/* Exam Mode / Flashcards (now accessible on phone!) */}
+            {/* Exam Mode / Flashcards */}
             <button
               onClick={onOpenRevision}
               className="w-9 h-9 rounded-xl bg-[#E7DDF8] text-[#3E2B5A] border border-[#D8C6F2] flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
@@ -221,5 +222,5 @@ export const Header: React.FC<Props> = ({
         </div>
       </div>
     </header>
-  )
-}
+  );
+};

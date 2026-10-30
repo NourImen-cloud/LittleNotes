@@ -139,10 +139,10 @@ export const NotebooksBar: React.FC<Props> = ({
           {/* All Notes card */}
           <button
             onClick={() => onSelectNotebook('all')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-medium transition shrink-0 cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-semibold transition shrink-0 cursor-pointer ${
               selectedNotebookId === 'all'
                 ? 'bg-[#37343C] text-white border-[#37343C] shadow-sm'
-                : 'bg-white/80 text-stone-700 border-[#E5DAC8] hover:bg-white hover:border-stone-400'
+                : 'bg-white/80 text-stone-700 border-[#E5DAC8] hover:bg-white hover:border-purple-300'
             }`}
           >
             <span>📖</span>
@@ -167,7 +167,7 @@ export const NotebooksBar: React.FC<Props> = ({
                 className={`group flex items-center gap-1.5 pl-3.5 pr-2 py-1.5 rounded-2xl border text-xs font-medium transition shrink-0 cursor-pointer select-none ${
                   isSelected
                     ? 'bg-[#37343C] text-white border-[#37343C] shadow-xs'
-                    : 'bg-white/80 text-stone-700 border-[#E5DAC8] hover:bg-white hover:border-stone-400'
+                    : 'bg-white/80 text-stone-700 border-[#E5DAC8] hover:bg-white hover:border-purple-300'
                 }`}
               >
                 <span className="text-sm">{nb.icon}</span>
@@ -211,10 +211,10 @@ export const NotebooksBar: React.FC<Props> = ({
 
         <button
           onClick={() => onSelectStage('all')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition shrink-0 ${
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition shrink-0 cursor-pointer ${
             activeStage === 'all'
               ? 'bg-[#E7DDF8] text-[#402C5E] font-semibold'
-              : 'text-stone-500 hover:text-stone-800'
+              : 'text-stone-600 hover:text-stone-900'
           }`}
         >
           All Stages
