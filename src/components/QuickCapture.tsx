@@ -34,6 +34,27 @@ export const QuickCapture: React.FC<Props> = ({
     contentRef.current = content;
   }, [content]);
 
+  // Clean up speech recognition on component unmount
+  useEffect(() => {
+    return () => {
+      shouldListenRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Helper to remove triple-repeated words/phrases caused by mobile speech recognition bugs
+  const cleanSpeechDuplicates = (text: string): string => {
+    if (!text) return text;
+    // Replace words repeated 3+ times in a row: "hello hello hello" -> "hello"
+    return text
+      .replace(/(?:^|\s)([\p{L}\p{N}_]+)(?:\s+\1){2,}(?=$|\s)/giu, (_match, word) => ' ' + word)
+      .trim();
+  };
+
   const stopListening = () => {
     shouldListenRef.current = false;
     if (recognitionRef.current) {
@@ -59,12 +80,19 @@ export const QuickCapture: React.FC<Props> = ({
     setIsListening(true);
     setIsExpanded(true);
 
+    const isMobileDevice =
+      typeof navigator !== 'undefined' &&
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     const initSession = () => {
       if (!shouldListenRef.current) return;
 
       try {
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        // On mobile (especially Android Chrome), continuous=true causes a well-documented browser bug
+        // where 3 identical alternative hypotheses are pushed into event.results, repeating words 3 times.
+        // Disabling continuous on mobile and letting onend seamlessly auto-restart fixes this.
+        recognition.continuous = !isMobileDevice;
         recognition.interimResults = true;
         recognition.lang = speechLang;
 
@@ -74,22 +102,62 @@ export const QuickCapture: React.FC<Props> = ({
         };
 
         recognition.onresult = (event: any) => {
-          let sessionTranscript = '';
+          const segments: string[] = [];
+
           for (let i = 0; i < event.results.length; i++) {
-            sessionTranscript += event.results[i][0].transcript + ' ';
+            const res = event.results[i];
+            if (!res || !res[0]) continue;
+
+            // Ignore 0-confidence ghost duplicate results on mobile
+            if (res[0].confidence === 0 && res.isFinal && event.results.length > 1) {
+              continue;
+            }
+
+            const rawChunk = (res[0].transcript || '').trim();
+            if (!rawChunk) continue;
+
+            const chunk = cleanSpeechDuplicates(rawChunk);
+            if (!chunk) continue;
+
+            // Deduplicate identical alternative hypotheses emitted by Android
+            if (segments.some((s) => s.toLowerCase() === chunk.toLowerCase())) {
+              continue;
+            }
+
+            // Deduplicate cumulative phrases (e.g. "hello" followed by "hello world")
+            if (
+              segments.length > 0 &&
+              chunk.toLowerCase().startsWith(segments[segments.length - 1].toLowerCase())
+            ) {
+              segments[segments.length - 1] = chunk;
+              continue;
+            }
+
+            // Deduplicate if previous segment already ends with this chunk
+            if (
+              segments.length > 0 &&
+              segments[segments.length - 1].toLowerCase().endsWith(chunk.toLowerCase())
+            ) {
+              continue;
+            }
+
+            segments.push(chunk);
           }
-          sessionTranscript = sessionTranscript.trim();
+
+          let sessionTranscript = segments.join(' ').trim();
+          sessionTranscript = cleanSpeechDuplicates(sessionTranscript);
 
           if (sessionTranscript) {
             const base = baseContentRef.current.trim();
             const fullText = base ? `${base} ${sessionTranscript}` : sessionTranscript;
+            contentRef.current = fullText;
             setContent(fullText);
           }
         };
 
         recognition.onerror = (event: any) => {
           console.warn('Speech recognition warning/error:', event.error);
-          if (event.error === 'no-speech') {
+          if (event.error === 'no-speech' || event.error === 'aborted') {
             return;
           }
           if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
@@ -119,7 +187,7 @@ export const QuickCapture: React.FC<Props> = ({
               if (shouldListenRef.current) {
                 initSession();
               }
-            }, 100);
+            }, isMobileDevice ? 250 : 100);
           } else {
             setIsListening(false);
           }
