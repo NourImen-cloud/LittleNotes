@@ -697,7 +697,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Body */}
-      <main className={`flex-1 ${isWidgetMode ? 'max-w-md px-3 py-2' : 'max-w-7xl px-4 sm:px-6 py-4'} w-full mx-auto transition-all duration-300`}>
+      <main className={`flex-1 ${isWidgetMode ? 'max-w-md px-3 py-2' : 'max-w-7xl px-4 sm:px-6 py-4'} w-full mx-auto transition-all duration-300 pb-28 md:pb-12`}>
         {isWidgetMode && (
           <div className="mb-3 px-3 py-2 bg-[#E7DDF8]/70 border border-[#D8C6F2] rounded-2xl text-xs text-[#3E2B5A] flex items-center justify-between shadow-2xs">
             <span className="font-medium flex items-center gap-1.5">
@@ -913,6 +913,7 @@ export const App: React.FC = () => {
           setEditingNote(null);
         }}
         onSave={handleUpdateNote}
+        onDelete={handleDeleteNote}
       />
 
       {/* Revision & Exam Prep Mode */}

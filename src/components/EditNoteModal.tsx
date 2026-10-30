@@ -24,6 +24,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updated: Note) => void;
+  onDelete?: (id: string) => void;
 }
 
 const LANGUAGES = ['python', 'typescript', 'javascript', 'html', 'css', 'sql', 'bash', 'c++', 'rust'];
@@ -33,6 +34,7 @@ interface ContentProps {
   notebooks: Notebook[];
   onClose: () => void;
   onSave: (updated: Note) => void;
+  onDelete?: (id: string) => void;
 }
 
 const EditNoteModalContent: React.FC<ContentProps> = ({
@@ -40,6 +42,7 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
   notebooks,
   onClose,
   onSave,
+  onDelete,
 }) => {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -696,22 +699,42 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-200/60 transition text-xs font-medium cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-5 py-2 rounded-xl bg-[#37343C] text-white hover:bg-stone-800 transition text-xs font-medium cursor-pointer shadow-sm flex items-center gap-1.5"
-            >
-              <CheckCircle size={14} />
-              <span>Save & Keep</span>
-            </button>
+          {/* Footer Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-stone-200">
+            {onDelete ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Delete this note permanently?')) {
+                    onDelete(note.id);
+                    onClose();
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition text-xs font-semibold cursor-pointer"
+                title="Delete note"
+              >
+                <Trash2 size={14} className="text-rose-600" />
+                <span>Delete Note</span>
+              </button>
+            ) : <div />}
+
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-200/60 transition text-xs font-medium cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="px-5 py-2 rounded-xl bg-[#37343C] text-white hover:bg-stone-800 transition text-xs font-medium cursor-pointer shadow-sm flex items-center gap-1.5"
+              >
+                <CheckCircle size={14} />
+                <span>Save & Keep</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -733,6 +756,7 @@ export const EditNoteModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onSave,
+  onDelete,
 }) => {
   if (!isOpen || !note) return null;
 
@@ -742,6 +766,7 @@ export const EditNoteModal: React.FC<Props> = ({
       notebooks={notebooks}
       onClose={onClose}
       onSave={onSave}
+      onDelete={onDelete}
     />
   );
 };

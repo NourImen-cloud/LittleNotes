@@ -445,7 +445,7 @@ export const QuickCapture: React.FC<Props> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs text-stone-400">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-stone-100 text-xs text-stone-400">
             <div className="flex items-center gap-2">
               {recentlySaved ? (
                 <span className="text-emerald-700 flex items-center gap-1 font-medium animate-in fade-in">
@@ -458,28 +458,30 @@ export const QuickCapture: React.FC<Props> = ({
                   Listening in {speechLang.startsWith('en') ? 'English' : speechLang.startsWith('fr') ? 'French' : speechLang}...
                 </span>
               ) : (
-                <span>
-                  Press <kbd className="px-1 py-0.5 rounded-sm bg-stone-100 font-mono text-[10px]">Enter</kbd> to catch instantly
+                <span className="text-stone-500 text-[11px] sm:text-xs">
+                  <span className="hidden sm:inline">Press <kbd className="px-1 py-0.5 rounded-sm bg-stone-100 font-mono text-[10px]">Enter</kbd> to catch instantly</span>
+                  <span className="sm:hidden italic">Ready to catch your thought</span>
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-end gap-1.5 flex-wrap">
               {/* Photo Button */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded-full border border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100 transition cursor-pointer"
+                className="p-2 rounded-xl border border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100 transition cursor-pointer"
                 title="Attach photo or snapshot"
+                aria-label="Attach photo"
               >
-                <ImageIcon size={13} />
+                <ImageIcon size={14} />
               </button>
 
               {/* Language Selector */}
               <select
                 value={speechLang}
                 onChange={(e) => setSpeechLang(e.target.value)}
-                className="text-[11px] bg-stone-50 border border-stone-200 text-stone-600 rounded-lg px-1.5 py-1 focus:outline-hidden cursor-pointer"
+                className="text-xs bg-stone-50 border border-stone-200 text-stone-600 rounded-xl px-2 py-1.5 focus:outline-hidden cursor-pointer"
                 title="Dictation language (change if dictating in another language)"
               >
                 <option value="en-US">🇺🇸 EN</option>
@@ -492,21 +494,22 @@ export const QuickCapture: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={toggleListening}
-                className={`p-1.5 rounded-full border transition cursor-pointer ${
+                className={`p-2 rounded-xl border transition cursor-pointer ${
                   isListening
                     ? 'bg-rose-500 text-white border-rose-600 animate-pulse shadow-xs'
                     : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
                 }`}
                 title={isListening ? 'Stop dictation' : 'Dictate note with microphone'}
+                aria-label={isListening ? 'Stop dictation' : 'Dictate note'}
               >
-                {isListening ? <MicOff size={13} /> : <Mic size={13} />}
+                {isListening ? <MicOff size={14} /> : <Mic size={14} />}
               </button>
 
               {isExpanded && (
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="px-2.5 py-1 rounded-lg hover:bg-stone-100 text-stone-500 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl hover:bg-stone-100 text-stone-500 text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -515,7 +518,7 @@ export const QuickCapture: React.FC<Props> = ({
               <button
                 type="submit"
                 disabled={!content.trim() && !title.trim() && photos.length === 0}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#37343C] text-white hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs text-xs font-medium cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#37343C] text-white hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs text-xs font-medium cursor-pointer"
               >
                 <span>Catch it</span>
                 <Send size={12} />

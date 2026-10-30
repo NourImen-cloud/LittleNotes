@@ -59,7 +59,7 @@ export const NoteCard: React.FC<Props> = ({
         backgroundColor: colorScheme.bg,
         borderColor: colorScheme.border,
       }}
-      className={`group relative h-[240px] rounded-2xl p-5 border shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between hover:-translate-y-0.5 select-none ${
+      className={`group relative min-h-[220px] h-full rounded-2xl p-4 sm:p-5 border shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between hover:-translate-y-0.5 select-none ${
         note.isPinned ? 'ring-2 ring-amber-400/60' : ''
       }`}
     >
@@ -90,14 +90,15 @@ export const NoteCard: React.FC<Props> = ({
 
           <button
             onClick={handleTogglePin}
-            className={`p-1 rounded-md transition ${
+            className={`p-1.5 rounded-lg transition ${
               note.isPinned
-                ? 'text-amber-600 bg-amber-100/80'
-                : 'text-stone-400 opacity-0 group-hover:opacity-100 hover:text-stone-700 hover:bg-stone-200/50'
+                ? 'text-amber-600 bg-amber-100/90'
+                : 'text-stone-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:text-stone-700 hover:bg-stone-200/60'
             }`}
             title={note.isPinned ? 'Unpin note' : 'Pin note'}
+            aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
           >
-            <Pin size={14} className={note.isPinned ? 'fill-amber-500' : ''} />
+            <Pin size={15} className={note.isPinned ? 'fill-amber-500' : ''} />
           </button>
         </div>
       </div>
@@ -242,17 +243,18 @@ export const NoteCard: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150">
           {note.revisionQuestion && onStartRevision && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onStartRevision(note);
               }}
-              className="p-1 rounded-md text-purple-600 hover:bg-purple-100 transition"
+              className="p-1.5 rounded-lg text-purple-700 bg-purple-100/80 sm:bg-transparent hover:bg-purple-100 transition"
               title="Test yourself on this note"
+              aria-label="Test yourself"
             >
-              <BookOpen size={13} />
+              <BookOpen size={14} />
             </button>
           )}
 
@@ -261,18 +263,21 @@ export const NoteCard: React.FC<Props> = ({
               e.stopPropagation();
               onEditNote(note);
             }}
-            className="p-1 rounded-md text-stone-500 hover:text-stone-800 hover:bg-stone-200/60 transition"
+            className="p-1.5 rounded-lg text-stone-600 bg-stone-100/90 sm:bg-transparent hover:text-stone-900 hover:bg-stone-200/70 transition"
             title="Edit / Shape note"
+            aria-label="Edit note"
           >
-            <Edit3 size={13} />
+            <Edit3 size={14} />
           </button>
 
           <button
             onClick={handleDelete}
-            className="p-1 rounded-md text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition"
+            className="flex items-center gap-1 p-1.5 px-2 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 sm:bg-transparent sm:hover:bg-rose-50 border border-rose-200/80 sm:border-transparent transition font-medium cursor-pointer"
             title="Delete note"
+            aria-label="Delete note"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} className="text-rose-600 shrink-0" />
+            <span className="sm:hidden text-[11px] font-semibold text-rose-600">Delete</span>
           </button>
         </div>
       </div>

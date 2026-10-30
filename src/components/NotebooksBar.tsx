@@ -71,7 +71,7 @@ export const NotebooksBar: React.FC<Props> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {selectedNotebookId !== 'all' && (
               <button
                 type="button"
@@ -83,7 +83,7 @@ export const NotebooksBar: React.FC<Props> = ({
                 title="Delete this notebook"
               >
                 <Trash2 size={13} />
-                <span>Delete Notebook</span>
+                <span>Delete<span className="hidden sm:inline"> Notebook</span></span>
               </button>
             )}
             <button
@@ -91,7 +91,7 @@ export const NotebooksBar: React.FC<Props> = ({
               className="flex items-center gap-1 text-xs text-stone-600 hover:text-stone-900 transition font-medium px-2 py-1 rounded-lg hover:bg-stone-100 cursor-pointer"
             >
               <FolderPlus size={13} />
-              <span>New Notebook</span>
+              <span>New<span className="hidden sm:inline"> Notebook</span></span>
             </button>
           </div>
         </div>
@@ -186,7 +186,7 @@ export const NotebooksBar: React.FC<Props> = ({
                     e.stopPropagation();
                     handleOpenDelete(nb);
                   }}
-                  className={`p-1 rounded-full transition ml-0.5 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 ${
+                  className={`p-1 rounded-full transition ml-0.5 cursor-pointer opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 ${
                     isSelected
                       ? 'text-stone-300 hover:text-white hover:bg-rose-500/80'
                       : 'text-stone-400 hover:text-rose-600 hover:bg-rose-100/80'

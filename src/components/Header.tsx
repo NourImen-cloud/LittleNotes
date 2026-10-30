@@ -55,73 +55,100 @@ export const Header: React.FC<Props> = ({
     <header className={`sticky top-0 z-30 ${isNightMode ? 'bg-[#211E26]/90 border-stone-800' : 'bg-[#FAF6EF]/90 border-[#E8DFC9]'} backdrop-blur-md border-b px-4 sm:px-8 py-3 transition-colors print:hidden`}>
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Brand & Tagline */}
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl ${isNightMode ? 'bg-[#3A3347] border-[#4E4461]' : 'bg-[#E7DDF8] border-[#D8C6F2]'} border flex items-center justify-center text-xl shadow-xs`}>
+        <div className="flex items-center justify-between w-full md:w-auto gap-2">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${isNightMode ? 'bg-[#3A3347] border-[#4E4461]' : 'bg-[#E7DDF8] border-[#D8C6F2]'} border flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0`}>
               📝
             </div>
             <div>
-              <h1 className={`text-xl sm:text-2xl font-serif font-bold ${isNightMode ? 'text-amber-100' : 'text-[#37343C]'} tracking-tight m-0`}>
+              <h1 className={`text-lg sm:text-2xl font-serif font-bold ${isNightMode ? 'text-amber-100' : 'text-[#37343C]'} tracking-tight m-0 truncate`}>
                 little notes
               </h1>
             </div>
           </div>
 
-          {/* Mobile Action Buttons */}
-          <div className="flex items-center gap-1.5 md:hidden">
+          {/* Mobile Action Buttons - Horizontally scrollable without squishing */}
+          <div className="flex items-center gap-1.5 md:hidden overflow-x-auto py-1 max-w-[65%] sm:max-w-none scrollbar-none">
+            {/* Exam Mode / Flashcards (now accessible on phone!) */}
+            <button
+              onClick={onOpenRevision}
+              className="w-9 h-9 rounded-xl bg-[#E7DDF8] text-[#3E2B5A] border border-[#D8C6F2] flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
+              title="Exam Mode / Flashcards"
+              aria-label="Exam Mode"
+            >
+              <BookOpen size={16} />
+            </button>
+
+            {/* Café Timer */}
+            <button
+              onClick={onOpenTimer}
+              className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 border border-amber-200/80 flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
+              title="Study Café Timer"
+              aria-label="Study Café Timer"
+            >
+              <Coffee size={16} />
+            </button>
+
+            {/* Device Sync */}
+            <button
+              onClick={onOpenSync}
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition cursor-pointer shadow-2xs ${
+                isPaired
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : 'bg-white/90 border-stone-200 text-purple-900'
+              }`}
+              title="Device Sync / QR Code"
+              aria-label="Device Sync"
+            >
+              <QrCode size={16} />
+            </button>
+
+            {/* QR Scanner with Camera */}
+            {onOpenScanner && (
+              <button
+                onClick={onOpenScanner}
+                className="w-9 h-9 rounded-xl bg-purple-50 text-purple-900 border border-purple-200 flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
+                title="Scan QR Code with Camera"
+                aria-label="Scan QR Code"
+              >
+                <Camera size={16} />
+              </button>
+            )}
+
+            {/* Install App */}
+            {!isInstalled && (
+              <button
+                onClick={onOpenInstall}
+                className="w-9 h-9 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
+                title="Install App"
+                aria-label="Install App"
+              >
+                <Download size={16} />
+              </button>
+            )}
+
+            {/* Widget Mode */}
             <button
               onClick={onToggleWidgetMode}
-              className={`p-2 rounded-xl border transition ${
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition cursor-pointer shadow-2xs ${
                 isWidgetMode
                   ? 'bg-purple-100 text-purple-900 border-purple-300'
                   : 'bg-white/90 border-stone-200 text-stone-600'
               }`}
               title={isWidgetMode ? 'Full View' : 'Corner Widget Mode'}
+              aria-label="Widget Mode"
             >
               {isWidgetMode ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
             </button>
-            {!isInstalled && (
-              <button
-                onClick={onOpenInstall}
-                className="p-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200"
-                title="Install App (iPhone / Android / Desktop)"
-              >
-                <Download size={16} />
-              </button>
-            )}
-            <button
-              onClick={onOpenSync}
-              className={`p-2 rounded-xl border transition ${
-                isPaired
-                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                  : 'bg-purple-100 text-purple-900 border-purple-200'
-              }`}
-              title="Device Sync / QR Code"
-            >
-              <QrCode size={16} />
-            </button>
-            {onOpenScanner && (
-              <button
-                onClick={onOpenScanner}
-                className="p-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-200"
-                title="Scan QR Code with Camera"
-              >
-                <Camera size={16} />
-              </button>
-            )}
-            <button
-              onClick={onOpenTimer}
-              className="p-2 rounded-xl bg-amber-100 text-amber-900"
-              title="Study Timer"
-            >
-              <Coffee size={16} />
-            </button>
+
+            {/* Quick Add Sticky Note */}
             <button
               onClick={onOpenTemplates}
-              className="p-2 rounded-xl bg-[#37343C] text-white shadow-xs"
+              className="w-9 h-9 rounded-xl bg-[#37343C] text-white flex items-center justify-center shrink-0 shadow-xs cursor-pointer"
               title="Add Sticky Note"
+              aria-label="Add Sticky Note"
             >
-              <Plus size={16} />
+              <Plus size={18} />
             </button>
           </div>
         </div>
