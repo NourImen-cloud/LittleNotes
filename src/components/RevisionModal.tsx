@@ -20,8 +20,10 @@ const RevisionModalContent: React.FC<{
   initialNoteId,
   onClose,
 }) => {
-  // Filter notes that have revision content or meaningful explanations
-  const studyNotes = notes.filter((n) => n.revisionQuestion || n.stage === 'reuse' || n.title);
+  // Filter ONLY notes that are in the Exam Ready ('reuse') stage
+  const studyNotes = notes.filter(
+    (n) => n.stage === 'reuse' || (initialNoteId && n.id === initialNoteId)
+  );
   const initialIndex = initialNoteId
     ? Math.max(0, studyNotes.findIndex((n) => n.id === initialNoteId))
     : 0;
@@ -37,17 +39,18 @@ const RevisionModalContent: React.FC<{
   if (!currentNote) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-        <div className="bg-[#FAF6EF] rounded-3xl p-8 max-w-md w-full border border-[#E0D5C3] text-center space-y-4">
-          <p className="text-3xl">🌱</p>
-          <h3 className="font-serif text-lg font-bold text-stone-800">No revision notes yet</h3>
-          <p className="text-xs text-stone-600">
-            Shape any note and add an exam prompt in Step 3 to test yourself here before exams!
+        <div className="bg-[#FAF6EF] rounded-3xl p-8 max-w-md w-full border border-[#E0D5C3] text-center space-y-4 shadow-xl">
+          <p className="text-4xl">🎓</p>
+          <h3 className="font-serif text-lg font-bold text-stone-800">No Exam Ready notes yet</h3>
+          <p className="text-xs text-stone-600 leading-relaxed">
+            Exam Mode strictly displays notes that are in the <strong>Step 3: Exam Ready</strong> stage.
+            Open any sticky note, set its stage to &ldquo;Exam Ready&rdquo;, and practice testing yourself here!
           </p>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-[#37343C] text-white rounded-xl text-xs font-medium"
+            className="px-5 py-2.5 bg-[#37343C] hover:bg-stone-800 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-xs"
           >
-            Close
+            Got it, go to notes
           </button>
         </div>
       </div>
@@ -76,12 +79,17 @@ const RevisionModalContent: React.FC<{
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#E8DFC9] flex items-center justify-between bg-white/70">
+        <div className="px-5 sm:px-6 py-4 border-b border-[#E8DFC9] flex items-center justify-between bg-white/70">
           <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-purple-600" />
-            <h3 className="text-lg font-serif font-semibold text-[#37343C]">
-              Step 3: Revision & Active Recall
-            </h3>
+            <Sparkles size={18} className="text-purple-600 shrink-0" />
+            <div>
+              <h3 className="text-base sm:text-lg font-serif font-semibold text-[#37343C] flex flex-wrap items-center gap-1.5">
+                <span>Active Recall</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 font-sans font-medium">
+                  Exam Ready Only
+                </span>
+              </h3>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {masteredIds.size > 0 && (

@@ -11,7 +11,7 @@ export const StudyTimerModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [totalSeconds, setTotalSeconds] = useState(25 * 60);
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
-  const [timerMode, setTimerMode] = useState<'focus' | 'break' | 'deep'>('focus');
+  const [timerMode, setTimerMode] = useState<'focus' | 'break' | 'deep' | 'custom'>('focus');
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
 
   // Timer countdown
@@ -24,7 +24,7 @@ export const StudyTimerModal: React.FC<Props> = ({ isOpen, onClose }) => {
     } else if (secondsLeft === 0 && isActive) {
       setIsActive(false);
       playGentleChime();
-      alert(timerMode === 'focus' ? '🍵 Great focus session! Time for a short mochi break.' : '🌿 Break finished! Ready to capture more thoughts?');
+      alert(timerMode === 'break' ? '🌿 Rest finished! Ready to capture more thoughts?' : '🍵 Focus session complete! Time for a rest.');
     }
     return () => clearInterval(interval);
   }, [isActive, secondsLeft, timerMode]);
@@ -35,6 +35,20 @@ export const StudyTimerModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const secs = type === 'focus' ? 25 * 60 : type === 'break' ? 5 * 60 : 50 * 60;
     setTotalSeconds(secs);
     setSecondsLeft(secs);
+  };
+
+  const setCustomMinutes = (mins: number) => {
+    const valid = Math.max(1, Math.min(180, mins));
+    setIsActive(false);
+    setTimerMode('custom');
+    const secs = valid * 60;
+    setTotalSeconds(secs);
+    setSecondsLeft(secs);
+  };
+
+  const adjustMinutes = (delta: number) => {
+    const currentMins = Math.round(secondsLeft / 60);
+    setCustomMinutes(currentMins + delta);
   };
 
   const toggleTimer = () => {
@@ -94,27 +108,85 @@ export const StudyTimerModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Preset switch */}
-        <div className="p-6 space-y-6 text-center">
-          <div className="flex justify-center gap-2 bg-white/80 p-1 rounded-2xl border border-stone-200/80">
+        <div className="p-5 sm:p-6 space-y-4 sm:space-y-5 text-center">
+          <div className="flex justify-center gap-1.5 sm:gap-2 bg-white/80 p-1.5 rounded-2xl border border-stone-200/80">
             {(
               [
-                { id: 'focus', label: '25m Tea Focus', icon: '🍵' },
-                { id: 'break', label: '5m Mochi Break', icon: '🍡' },
-                { id: 'deep', label: '50m Deep Lecture', icon: '📖' },
+                { id: 'focus', label: '25m Work', icon: '🍵' },
+                { id: 'break', label: '5m Rest', icon: '🍡' },
+                { id: 'deep', label: '50m Deep', icon: '📖' },
               ] as const
             ).map((preset) => (
               <button
                 key={preset.id}
                 onClick={() => selectPreset(preset.id)}
-                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
                   timerMode === preset.id
                     ? 'bg-[#37343C] text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
                 }`}
               >
-                <span>{preset.icon}</span> <span className="hidden sm:inline">{preset.label}</span>
+                <span>{preset.icon}</span> <span className="ml-0.5">{preset.label}</span>
               </button>
             ))}
+          </div>
+
+          {/* Custom Duration Stepper & Input */}
+          <div className="flex items-center justify-between bg-white/90 p-2 px-3 rounded-2xl border border-stone-200/90 text-xs shadow-2xs">
+            <span className="text-stone-500 font-medium text-[11px]">
+              {isActive ? '⏱️ Running' : '✏️ Set Duration:'}
+            </span>
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <button
+                type="button"
+                disabled={isActive}
+                onClick={() => adjustMinutes(-5)}
+                className="px-2 py-1 bg-stone-100 hover:bg-stone-200 disabled:opacity-40 rounded-lg text-stone-700 font-semibold transition text-xs cursor-pointer"
+                title="Subtract 5 minutes"
+              >
+                -5m
+              </button>
+              <button
+                type="button"
+                disabled={isActive}
+                onClick={() => adjustMinutes(-1)}
+                className="px-2 py-1 bg-stone-100 hover:bg-stone-200 disabled:opacity-40 rounded-lg text-stone-700 font-semibold transition text-xs cursor-pointer"
+                title="Subtract 1 minute"
+              >
+                -1m
+              </button>
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-stone-50 border border-stone-200 rounded-lg">
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  disabled={isActive}
+                  value={Math.max(1, Math.round(totalSeconds / 60))}
+                  onChange={(e) => setCustomMinutes(Number(e.target.value) || 1)}
+                  className="w-10 text-center font-mono font-bold text-xs text-stone-800 bg-transparent focus:outline-hidden disabled:opacity-50"
+                  title="Type custom minutes (1-180)"
+                />
+                <span className="text-[10px] text-stone-400 font-mono">min</span>
+              </div>
+              <button
+                type="button"
+                disabled={isActive}
+                onClick={() => adjustMinutes(1)}
+                className="px-2 py-1 bg-stone-100 hover:bg-stone-200 disabled:opacity-40 rounded-lg text-stone-700 font-semibold transition text-xs cursor-pointer"
+                title="Add 1 minute"
+              >
+                +1m
+              </button>
+              <button
+                type="button"
+                disabled={isActive}
+                onClick={() => adjustMinutes(5)}
+                className="px-2 py-1 bg-stone-100 hover:bg-stone-200 disabled:opacity-40 rounded-lg text-stone-700 font-semibold transition text-xs cursor-pointer"
+                title="Add 5 minutes"
+              >
+                +5m
+              </button>
+            </div>
           </div>
 
           {/* Big timer circle */}
@@ -137,7 +209,13 @@ export const StudyTimerModal: React.FC<Props> = ({ isOpen, onClose }) => {
               {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </span>
             <span className="text-[11px] text-stone-600 mt-1 uppercase font-serif tracking-widest">
-              {timerMode === 'focus' ? 'In the Zone' : timerMode === 'break' ? 'Relaxing' : 'Deep Study'}
+              {timerMode === 'focus'
+                ? '25m Work Focus'
+                : timerMode === 'break'
+                ? '5m Rest Break'
+                : timerMode === 'deep'
+                ? '50m Deep Study'
+                : `${Math.round(totalSeconds / 60)}m Custom Focus`}
             </span>
           </div>
 

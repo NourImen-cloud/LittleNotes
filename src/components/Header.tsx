@@ -8,7 +8,6 @@ import {
   Minimize2,
   Maximize2,
   Download,
-  Camera,
 } from 'lucide-react';
 
 interface Props {
@@ -41,7 +40,7 @@ export const Header: React.FC<Props> = ({
   onOpenRevision,
   onOpenTimer,
   onOpenSync,
-  onOpenScanner,
+  onOpenScanner: _onOpenScanner,
   isPaired,
   isWidgetMode,
   onToggleWidgetMode,
@@ -102,18 +101,6 @@ export const Header: React.FC<Props> = ({
             >
               <QrCode size={16} />
             </button>
-
-            {/* QR Scanner with Camera */}
-            {onOpenScanner && (
-              <button
-                onClick={onOpenScanner}
-                className="w-9 h-9 rounded-xl bg-purple-50 text-purple-900 border border-purple-200 flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
-                title="Scan QR Code with Camera"
-                aria-label="Scan QR Code"
-              >
-                <Camera size={16} />
-              </button>
-            )}
 
             {/* Install App */}
             {!isInstalled && (

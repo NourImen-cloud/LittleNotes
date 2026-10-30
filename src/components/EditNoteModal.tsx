@@ -187,32 +187,32 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-3xl bg-[#FAF6EF] rounded-3xl shadow-2xl border border-[#E0D5C3] overflow-hidden flex flex-col my-auto max-h-[92vh]"
+        className="w-full max-w-3xl bg-[#FAF6EF] rounded-3xl shadow-2xl border border-[#E0D5C3] overflow-hidden flex flex-col my-auto max-h-[90dvh] sm:max-h-[88vh] h-[90dvh] sm:h-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-[#E8DFC9] flex items-center justify-between bg-white/70">
+        {/* Header (Pinned) */}
+        <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-[#E8DFC9] flex items-center justify-between bg-white/80 backdrop-blur-xs">
           <div className="flex items-center gap-2">
             <span className="text-xl">✏️</span>
             <div>
-              <h3 className="text-xl font-serif font-semibold text-[#37343C]">Shape Your Note</h3>
-              <p className="text-xs text-stone-500 font-sans">
+              <h3 className="text-lg sm:text-xl font-serif font-semibold text-[#37343C]">Shape Your Note</h3>
+              <p className="text-[11px] sm:text-xs text-stone-500 font-sans">
                 Turn quick thoughts into lasting knowledge
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition"
+            className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition cursor-pointer"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Form Body */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5">
           {/* Title & Notebook selector */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 space-y-1">
@@ -698,43 +698,43 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Footer Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-stone-200">
-            {onDelete ? (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('Delete this note permanently?')) {
-                    onDelete(note.id);
-                    onClose();
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition text-xs font-semibold cursor-pointer"
-                title="Delete note"
-              >
-                <Trash2 size={14} className="text-rose-600" />
-                <span>Delete Note</span>
-              </button>
-            ) : <div />}
+        {/* Pinned Sticky Footer - ALWAYS VISIBLE ON MOBILE & DESKTOP */}
+        <div className="shrink-0 px-4 sm:px-6 py-3 border-t border-[#E0D5C3] bg-white/95 backdrop-blur-md flex items-center justify-between gap-2 shadow-xs z-20">
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Delete this note permanently?')) {
+                  onDelete(note.id);
+                  onClose();
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition text-xs font-semibold cursor-pointer"
+              title="Delete note"
+            >
+              <Trash2 size={14} className="text-rose-600 shrink-0" />
+              <span>Delete<span className="hidden sm:inline"> Note</span></span>
+            </button>
+          ) : <div />}
 
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-200/60 transition text-xs font-medium cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="px-5 py-2 rounded-xl bg-[#37343C] text-white hover:bg-stone-800 transition text-xs font-medium cursor-pointer shadow-sm flex items-center gap-1.5"
-              >
-                <CheckCircle size={14} />
-                <span>Save & Keep</span>
-              </button>
-            </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 rounded-xl text-stone-600 hover:bg-stone-200/60 transition text-xs font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-5 py-2 rounded-xl bg-[#37343C] text-white hover:bg-stone-800 transition text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <CheckCircle size={15} />
+              <span>Save & Keep</span>
+            </button>
           </div>
         </div>
       </div>
