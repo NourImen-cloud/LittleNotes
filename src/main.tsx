@@ -1,14 +1,11 @@
 import { StrictMode, Component, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
 
-try {
-  const { registerSW } = await import('virtual:pwa-register')
-  registerSW({ immediate: true })
-} catch (e) {
-  console.warn('PWA registration skipped or unsupported:', e)
-}
+// Register service worker safely without blocking module evaluation
+registerSW({ immediate: true })
 
 class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: any }> {
   constructor(props: { children: ReactNode }) {
