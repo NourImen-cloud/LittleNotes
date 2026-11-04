@@ -39,7 +39,7 @@ export function saveStoredRoomCode(code: string | null) {
 export function generateSyncCode(): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let result = 'LN-';
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;

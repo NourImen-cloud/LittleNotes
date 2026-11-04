@@ -32,10 +32,6 @@ const STORAGE_WIDGET_KEY = 'littlenotes_widget_mode_v1';
 const STORAGE_INSTALLED_KEY = 'littlenotes_installed_v1';
 const STORAGE_VAULT_KEY = 'littlenotes_vault_backup_v1';
 
-const isUserNotesComplete = (list: Note[]) => {
-  return Array.isArray(list) && list.length >= INITIAL_NOTES.length;
-};
-
 const checkIsStandalone = () => {
   if (typeof window === 'undefined') return false;
   return (
@@ -49,13 +45,13 @@ const checkIsStandalone = () => {
 };
 
 export const App: React.FC = () => {
-  // Load data from localStorage or initial notes (with all user notes intact)
+  // Load data from localStorage or initial notes
   const [notes, setNotes] = useState<Note[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_NOTES_KEY);
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (isUserNotesComplete(parsed)) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
@@ -68,9 +64,9 @@ export const App: React.FC = () => {
   const [notebooks, setNotebooks] = useState<Notebook[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_NOTEBOOKS_KEY);
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 9) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
@@ -308,6 +304,7 @@ export const App: React.FC = () => {
       if (remote.notes.length < mergedNotes.length) {
         pushSyncData(syncRoomCode, mergedNotes, mergedNotebooks, 'SYNC_FULL');
       }
+      isJoinedFromUrlRef.current = false;
       setTimeout(() => {
         isRemoteUpdating.current = false;
       }, 400);
@@ -355,8 +352,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (!syncRoomCode || isRemoteUpdating.current) return;
 
-    // If joining device currently has fewer notes, don't auto-push until it receives full data
-    if (isJoinedFromUrlRef.current && notes.length < INITIAL_NOTES.length) {
+    // If joining device is still waiting for initial data snapshot, don't auto-push yet
+    if (isJoinedFromUrlRef.current) {
       return;
     }
 
@@ -388,14 +385,17 @@ export const App: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(notes));
-      if (isUserNotesComplete(notes)) {
-        localStorage.setItem(
-          STORAGE_VAULT_KEY,
-          JSON.stringify({ notes, notebooks, savedAt: new Date().toISOString() })
+      localStorage.setItem(
+        STORAGE_VAULT_KEY,
+        JSON.stringify({ notes, notebooks, savedAt: new Date().toISOString() })
+      );
+    } catch (err: any) {
+      console.error('Failed to save notes to localStorage', err);
+      if (err?.name === 'QuotaExceededError' || err?.code === 22) {
+        alert(
+          '⚠️ Storage full! Your browser storage limit (5MB) has been reached. Please delete some large photos or download a backup via the Export button.'
         );
       }
-    } catch (err) {
-      console.error('Failed to save notes to localStorage', err);
     }
   }, [notes, notebooks]);
 

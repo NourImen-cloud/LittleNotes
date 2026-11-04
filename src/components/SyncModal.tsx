@@ -335,9 +335,9 @@ export const SyncModal: React.FC<Props> = ({
                     type="text"
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. LN-7931"
+                    placeholder="e.g. LN-8K2M9P"
                     className="w-full text-center font-mono text-lg font-bold tracking-widest bg-white border border-[#E3D8C6] rounded-xl px-4 py-3 text-stone-800 placeholder:text-stone-300 focus:outline-hidden focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
-                    maxLength={10}
+                    maxLength={12}
                     autoFocus
                   />
                   {joinError && <p className="text-xs text-rose-600 mt-1">{joinError}</p>}
