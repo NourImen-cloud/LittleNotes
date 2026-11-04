@@ -45,7 +45,9 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
   onDelete,
 }) => {
   const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(note.content);
+  const [content, setContent] = useState(
+    note.content === 'Write your notes or thoughts here...' ? '' : note.content
+  );
   const [notebookId, setNotebookId] = useState(note.notebookId);
   const [color, setColor] = useState<NoteColor>(note.color);
   const [styleType] = useState<NoteStyle>(note.styleType);
@@ -322,7 +324,7 @@ const EditNoteModalContent: React.FC<ContentProps> = ({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onPaste={handlePastePhoto}
-              placeholder="Write your explanation, lecture takeaways, or thoughts... (Tip: paste screenshots with Ctrl+V)"
+              placeholder="Write your notes or thoughts here... (Tip: paste screenshots with Ctrl+V)"
               className="w-full bg-white border border-[#E3D8C6] rounded-xl p-3.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-hidden focus:border-stone-600 focus:ring-1 focus:ring-stone-600 leading-relaxed font-sans"
             />
           </div>

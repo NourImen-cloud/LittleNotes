@@ -437,7 +437,7 @@ export const App: React.FC = () => {
     const newNote: Note = {
       id: 'note-' + Date.now(),
       title: preset.title,
-      content: 'Write your notes or thoughts here...',
+      content: '',
       notebookId: selectedNotebookId !== 'all' ? selectedNotebookId : fallbackNbId,
       color: preset.color,
       styleType: preset.styleType,

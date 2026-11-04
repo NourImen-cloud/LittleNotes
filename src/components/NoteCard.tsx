@@ -115,7 +115,7 @@ export const NoteCard: React.FC<Props> = ({
         {/* Photos Preview */}
         {note.photos && note.photos.length > 0 ? (
           <div className="flex-1 min-h-0 flex flex-col justify-start overflow-hidden">
-            {note.content && (
+            {note.content && note.content !== 'Write your notes or thoughts here...' && (
               <p className="text-stone-700 text-xs leading-relaxed line-clamp-1 mb-1.5 font-normal">
                 {note.content}
               </p>
@@ -182,7 +182,7 @@ export const NoteCard: React.FC<Props> = ({
               )}
             </div>
           </div>
-        ) : note.content ? (
+        ) : note.content && note.content !== 'Write your notes or thoughts here...' ? (
           <p
             className={`text-stone-700 text-sm leading-relaxed whitespace-pre-wrap font-normal ${
               note.title ? 'line-clamp-4' : 'line-clamp-5'
