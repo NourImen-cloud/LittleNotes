@@ -1,4 +1,4 @@
-# 🌿 LittleNotes — A Cozy Notebook for Students
+#  LittleNotes — A Cozy Notebook for Students
 
 > **"Your notes should adapt to the way you think, not force you to organize your thoughts before you can write them down."**
 
@@ -6,7 +6,7 @@ LittleNotes is an effortless, warm study space built for students to quickly cap
 
 ---
 
-## ✨ Core Pillars & Features
+## Core Pillars & Features
 
 ### 1. The Thought Flow (Signature Experience)
 - **Step 1: Catch it (`Inbox`)**
@@ -36,56 +36,3 @@ LittleNotes is an effortless, warm study space built for students to quickly cap
 - **Fast Instant Search**: Real-time filtering across note titles, contents, code snippets, tags, and revision prompts.
 - **Reliable Offline Saving**: All notes and notebooks persist locally in your browser (`localStorage`) with 1-click JSON backup export & restore.
 
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- npm (v9+)
-
-### Installation & Run
-
-```bash
-# Install dependencies
-npm install
-
-# Start local development server
-npm run dev
-```
-
-Visit the local URL shown in your terminal (typically `http://localhost:5188`) to start taking cozy notes!
-
-
-### Build for Production
-
-```bash
-npm run build
-```
-
----
-
-## 📂 Project Structure
-
-```
-Sticky Note/
-├── src/
-│   ├── components/
-│   │   ├── Header.tsx              # Brand, paper texture toggle, search, backup
-│   │   ├── QuickCapture.tsx        # Step 1: Instant capture bar
-│   │   ├── NotebooksBar.tsx        # Subject notebooks & Thought Flow filters
-│   │   ├── NoteCard.tsx            # Sticky note cards (code, checklist, stickers)
-│   │   ├── StickyNotePickerModal.tsx# Template selector inspired by tablet UI
-│   │   ├── EditNoteModal.tsx       # Step 2: Shape & enrich notes
-│   │   ├── RevisionModal.tsx       # Step 3: Active recall exam mode
-│   │   └── Stickers.tsx            # Cozy illustrated SVG companions
-│   ├── data/
-│   │   └── initialData.ts          # Seed notes & study subjects
-│   ├── utils/
-│   │   └── theme.ts                # Palette tokens & Thought Flow metadata
-│   ├── types.ts                    # TypeScript definitions
-│   ├── App.tsx                     # Main workspace orchestrator
-│   └── index.css                   # Tailwind v4 & paper texture styles
-├── index.html                      # Web entry point with Lora, Inter & JetBrains Mono
-└── vite.config.ts                  # Vite + Tailwind configuration
-```
