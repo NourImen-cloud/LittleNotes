@@ -33,7 +33,7 @@ const STORAGE_INSTALLED_KEY = 'littlenotes_installed_v1';
 const STORAGE_VAULT_KEY = 'littlenotes_vault_backup_v1';
 
 const isUserNotesComplete = (list: Note[]) => {
-  return Array.isArray(list) && list.length >= 17;
+  return Array.isArray(list) && list.length >= INITIAL_NOTES.length;
 };
 
 const checkIsStandalone = () => {
@@ -265,17 +265,48 @@ export const App: React.FC = () => {
       if (!Array.isArray(remote.notes) || remote.notes.length === 0) return;
 
       const currentNotes = notesRef.current;
-      // Safeguard: never let an incomplete remote set overwrite our full user notes
-      if (remote.notes.length < 17 && currentNotes.length >= 17) {
-        console.warn('[LiveSync] Blocked smaller remote note set from overwriting full notes!');
-        pushSyncData(syncRoomCode, currentNotes, notebooksRef.current, 'SYNC_FULL');
-        return;
+      const currentNotebooks = notebooksRef.current;
+
+      // Smart Merge: combine notes so no notes are ever accidentally deleted across devices
+      const noteMap = new Map<string, Note>();
+      for (const n of currentNotes) {
+        if (n && n.id) noteMap.set(n.id, n);
       }
+      for (const r of remote.notes) {
+        if (!r || !r.id) continue;
+        const existing = noteMap.get(r.id);
+        if (!existing) {
+          noteMap.set(r.id, r);
+        } else {
+          const existingTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+          const remoteTime = new Date(r.updatedAt || r.createdAt || 0).getTime();
+          if (remoteTime > existingTime) {
+            noteMap.set(r.id, r);
+          }
+        }
+      }
+      const mergedNotes = Array.from(noteMap.values());
+
+      const nbMap = new Map<string, Notebook>();
+      for (const nb of currentNotebooks) {
+        if (nb && nb.id) nbMap.set(nb.id, nb);
+      }
+      if (Array.isArray(remote.notebooks)) {
+        for (const rNb of remote.notebooks) {
+          if (rNb && rNb.id && !nbMap.has(rNb.id)) {
+            nbMap.set(rNb.id, rNb);
+          }
+        }
+      }
+      const mergedNotebooks = Array.from(nbMap.values());
 
       isRemoteUpdating.current = true;
-      setNotes(remote.notes);
-      if (Array.isArray(remote.notebooks) && remote.notebooks.length > 0) {
-        setNotebooks(remote.notebooks);
+      setNotes(mergedNotes);
+      setNotebooks(mergedNotebooks);
+
+      // If the remote device was missing any notes that exist locally, broadcast merged back so the phone gets them too!
+      if (remote.notes.length < mergedNotes.length) {
+        pushSyncData(syncRoomCode, mergedNotes, mergedNotebooks, 'SYNC_FULL');
       }
       setTimeout(() => {
         isRemoteUpdating.current = false;
@@ -325,7 +356,7 @@ export const App: React.FC = () => {
     if (!syncRoomCode || isRemoteUpdating.current) return;
 
     // If joining device currently has fewer notes, don't auto-push until it receives full data
-    if (isJoinedFromUrlRef.current && notes.length < 17) {
+    if (isJoinedFromUrlRef.current && notes.length < INITIAL_NOTES.length) {
       return;
     }
 
