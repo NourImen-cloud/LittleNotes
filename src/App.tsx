@@ -687,6 +687,22 @@ export const App: React.FC = () => {
   const pinnedNotes = filteredNotes.filter((n) => n.isPinned);
   const regularNotes = filteredNotes.filter((n) => !n.isPinned);
 
+  // "Show More" pagination – start with 12 visible notes per section
+  const NOTES_PER_PAGE = 12;
+  const [visiblePinnedCount, setVisiblePinnedCount] = useState(NOTES_PER_PAGE);
+  const [visibleRegularCount, setVisibleRegularCount] = useState(NOTES_PER_PAGE);
+
+  // Reset visible counts when filters, search, or notebook change
+  useEffect(() => {
+    setVisiblePinnedCount(NOTES_PER_PAGE);
+    setVisibleRegularCount(NOTES_PER_PAGE);
+  }, [searchQuery, selectedNotebookId, activeStage]);
+
+  const visiblePinned = pinnedNotes.slice(0, visiblePinnedCount);
+  const visibleRegular = regularNotes.slice(0, visibleRegularCount);
+  const hasMorePinned = pinnedNotes.length > visiblePinnedCount;
+  const hasMoreRegular = regularNotes.length > visibleRegularCount;
+
   // Background texture class
   const textureClass =
     paperTexture === 'grid'
@@ -827,12 +843,17 @@ export const App: React.FC = () => {
               {/* Pinned Notes section */}
               {pinnedNotes.length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-amber-800 uppercase tracking-wider print:hidden">
-                    <Pin size={13} className="fill-amber-700" />
-                    <span>Pinned Notes</span>
+                  <div className="flex items-center justify-between print:hidden">
+                    <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-amber-800 uppercase tracking-wider">
+                      <Pin size={13} className="fill-amber-700" />
+                      <span>Pinned Notes</span>
+                    </div>
+                    <span className="text-[11px] text-stone-500 font-medium tabular-nums">
+                      {visiblePinned.length} of {pinnedNotes.length}
+                    </span>
                   </div>
                   <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 items-start print:grid-cols-2`}>
-                    {pinnedNotes.map((note) => (
+                    {visiblePinned.map((note) => (
                       <NoteCard
                         key={note.id}
                         note={note}
@@ -844,6 +865,19 @@ export const App: React.FC = () => {
                       />
                     ))}
                   </div>
+                  {hasMorePinned && (
+                    <div className="flex justify-center pt-2 print:hidden">
+                      <button
+                        onClick={() => setVisiblePinnedCount((c) => c + NOTES_PER_PAGE)}
+                        className="group flex items-center gap-2 px-5 py-2.5 bg-white/80 hover:bg-white border border-[#E8DFC9] hover:border-amber-300 rounded-2xl text-xs font-semibold text-stone-700 hover:text-amber-900 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+                      >
+                        <span>Show More Pinned</span>
+                        <span className="text-[10px] text-stone-400 group-hover:text-amber-700 tabular-nums transition-colors">
+                          ({pinnedNotes.length - visiblePinnedCount} remaining)
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -851,12 +885,24 @@ export const App: React.FC = () => {
               {regularNotes.length > 0 && (
                 <div className="space-y-3">
                   {pinnedNotes.length > 0 && (
-                    <div className="text-xs font-serif font-bold text-stone-600 uppercase tracking-wider print:hidden">
-                      All Notes
+                    <div className="flex items-center justify-between print:hidden">
+                      <div className="text-xs font-serif font-bold text-stone-600 uppercase tracking-wider">
+                        All Notes
+                      </div>
+                      <span className="text-[11px] text-stone-500 font-medium tabular-nums">
+                        {visibleRegular.length} of {regularNotes.length}
+                      </span>
+                    </div>
+                  )}
+                  {pinnedNotes.length === 0 && regularNotes.length > visibleRegularCount && (
+                    <div className="flex items-center justify-end print:hidden">
+                      <span className="text-[11px] text-stone-500 font-medium tabular-nums">
+                        Showing {visibleRegular.length} of {regularNotes.length} notes
+                      </span>
                     </div>
                   )}
                   <div className={`grid ${isWidgetMode ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4 items-start print:grid-cols-2`}>
-                    {regularNotes.map((note) => (
+                    {visibleRegular.map((note) => (
                       <NoteCard
                         key={note.id}
                         note={note}
@@ -868,6 +914,19 @@ export const App: React.FC = () => {
                       />
                     ))}
                   </div>
+                  {hasMoreRegular && (
+                    <div className="flex justify-center pt-2 print:hidden">
+                      <button
+                        onClick={() => setVisibleRegularCount((c) => c + NOTES_PER_PAGE)}
+                        className="group flex items-center gap-2 px-5 py-2.5 bg-white/80 hover:bg-white border border-[#E8DFC9] hover:border-[#D8C6F2] rounded-2xl text-xs font-semibold text-stone-700 hover:text-[#402C5E] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+                      >
+                        <span>Show More Notes</span>
+                        <span className="text-[10px] text-stone-400 group-hover:text-[#6E4DAA] tabular-nums transition-colors">
+                          ({regularNotes.length - visibleRegularCount} remaining)
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
