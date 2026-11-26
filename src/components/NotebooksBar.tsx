@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import type { Notebook, Note, ThoughtStage } from '../types';
 import { FolderPlus, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
 
+const CUTE_NOTEBOOK_EMOJIS = [
+  '📚', '📖', '📝', '✨', '🌸', '🌿', '🍓', '☕',
+  '💡', '🎨', '💻', '🪴', '🐱', '🐰', '🐻', '🐥',
+  '🐼', '🧸', '💖', '⭐', '🎀', '🌙', '☁️', '🧪',
+];
+
 interface Props {
   notebooks: Notebook[];
   notes: Note[];
@@ -45,10 +51,11 @@ export const NotebooksBar: React.FC<Props> = ({
     if (!newTitle.trim()) return;
     onAddNotebook({
       name: newTitle.trim(),
-      icon: newIcon || '📘',
+      icon: newIcon || '📚',
       color: '#E7DDF8',
     });
     setNewTitle('');
+    setNewIcon('📚');
     setIsAdding(false);
   };
 
@@ -100,37 +107,93 @@ export const NotebooksBar: React.FC<Props> = ({
         {isAdding && (
           <form
             onSubmit={handleCreate}
-            className="mb-3 p-3 bg-white/90 border border-stone-200 rounded-2xl flex flex-wrap items-center gap-2 animate-in fade-in"
+            className="mb-3 p-3.5 bg-white/95 border border-[#DFCDB3] rounded-2xl shadow-xs space-y-3 animate-in fade-in duration-200"
           >
-            <input
-              type="text"
-              placeholder="Icon (e.g. 📊, 🧬, ⚡)"
-              value={newIcon}
-              onChange={(e) => setNewIcon(e.target.value)}
-              className="w-16 px-2 py-1 text-sm bg-stone-50 border border-stone-200 rounded-lg text-center"
-            />
-            <input
-              type="text"
-              placeholder="Notebook name (e.g. Linear Algebra, Bio Labs)..."
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              className="flex-1 min-w-[200px] px-3 py-1 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-hidden"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={!newTitle.trim()}
-              className="px-3 py-1 bg-[#37343C] text-white rounded-lg text-xs font-medium cursor-pointer"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 rounded-lg cursor-pointer"
-            >
-              Cancel
-            </button>
+            {/* Top row: Selected emoji preview + Notebook name input + Add / Cancel buttons */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+              <div
+                className="w-9 h-9 rounded-xl bg-[#FAF6EF] border border-[#DFCDB3] flex items-center justify-center text-lg shadow-2xs shrink-0 select-none"
+                title="Current selected icon"
+              >
+                {newIcon || '📚'}
+              </div>
+              <input
+                type="text"
+                placeholder="Notebook name (e.g. Linear Algebra, Bio Labs)..."
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="flex-1 min-w-[200px] px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-hidden focus:border-stone-400 focus:bg-white transition"
+                autoFocus
+              />
+              <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+                <button
+                  type="submit"
+                  disabled={!newTitle.trim()}
+                  className="px-3.5 py-1.5 bg-[#37343C] hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-medium cursor-pointer transition shadow-2xs"
+                >
+                  Add Notebook
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdding(false);
+                    setNewTitle('');
+                    setNewIcon('📚');
+                  }}
+                  className="px-2.5 py-1.5 text-xs text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-xl cursor-pointer transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            {/* Cute Emojis Selection Row */}
+            <div className="pt-2 border-t border-stone-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-serif font-medium text-stone-600 flex items-center gap-1.5">
+                  <span>✨</span>
+                  <span>Choose a cute notebook icon:</span>
+                </span>
+                <span className="text-[10px] text-stone-400">
+                  Tap any emoji to choose
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {CUTE_NOTEBOOK_EMOJIS.map((emoji) => {
+                  const isSelected = newIcon === emoji;
+                  return (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setNewIcon(emoji)}
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-base transition duration-150 transform active:scale-90 cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#E7DDF8] border-2 border-[#8A5CC7] shadow-xs scale-110 ring-2 ring-[#E7DDF8]'
+                          : 'bg-stone-50 hover:bg-stone-100 border border-stone-200/90 hover:border-stone-300 hover:scale-105'
+                      }`}
+                      title={`Select ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  );
+                })}
+
+                {/* Custom emoji input if user wants something specific */}
+                <input
+                  type="text"
+                  value={CUTE_NOTEBOOK_EMOJIS.includes(newIcon) ? '' : newIcon}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setNewIcon(e.target.value);
+                    }
+                  }}
+                  placeholder="Custom"
+                  maxLength={4}
+                  className="w-16 h-8 px-1 text-center text-xs bg-stone-50 border border-dashed border-stone-300 rounded-xl focus:border-stone-400 focus:outline-hidden"
+                  title="Or type your own custom emoji"
+                />
+              </div>
+            </div>
           </form>
         )}
 
